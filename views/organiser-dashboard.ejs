@@ -1,28 +1,60 @@
-<%- include('../partials/header', { title: 'Dashboard' }) %>
+<%- include('partials/header', { title: 'Dashboard' }) %>
 
-<div class="max-w-3xl mx-auto py-10">
-  <h1 class="text-3xl font-bold mb-6">Dashboard</h1>
-  <canvas id="bookingChart" width="400" height="200"></canvas>
+<div class="max-w-4xl mx-auto py-10 space-y-10">
+  <h1 class="text-3xl font-bold">Dashboard</h1>
+
+  <!-- ── Chart 1 ─────────────────────────────────────── -->
+  <section>
+    <h2 class="text-xl font-semibold mb-2">Tickets booked by type</h2>
+    <canvas id="chartProgress" width="400" height="200" class="h-56"></canvas>
+  </section>
+
+  <!-- ── Chart 2 ─────────────────────────────────────── -->
+  <section>
+    <h2 class="text-xl font-semibold mb-2">Events by state</h2>
+    <canvas id="chartEvents" width="400" height="200" class="h-56"></canvas>
+  </section>
 </div>
 
+<!-- Chart.js and drawing script -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  const data = {
-    labels: <%- JSON.stringify(labels) %>,
-    datasets: [{
-      label: 'Tickets Booked',
-      data: <%- JSON.stringify(dataPoints) %>,
-      backgroundColor: ['#60a5fa', '#f472b6', '#34d399', '#facc15'],
-      borderWidth: 1
-    }]
-  };
-  const config = {
-    type: 'pie',
-    data: data,
-    options: { responsive: true }
-  };
-  new Chart(document.getElementById('bookingChart'), config);
+  /* data injected from /routes/organiser.js */
+  const progLabels = <%- JSON.stringify(progLabels || []) %>;
+  const progData   = <%- JSON.stringify(progData   || []) %>;
+  const evtLabels  = <%- JSON.stringify(evtLabels  || []) %>;
+  const evtData    = <%- JSON.stringify(evtData    || []) %>;
+
+  /* helper – true if any value >0 */
+  const hasData = arr => Array.isArray(arr) && arr.some(n => n > 0);
+
+  /* Ticket-type pie chart */
+  if (hasData(progData)) {
+    new Chart(document.getElementById('chartProgress').getContext('2d'), {
+      type: 'pie',
+      data: { labels: progLabels, datasets: [{ data: progData }] },
+      options: { responsive: true }
+    });
+  } else {
+    document
+      .getElementById('chartProgress')
+      .insertAdjacentHTML('afterend',
+        '<p class="text-gray-500 italic">No bookings yet</p>');
+  }
+
+  /* Event-state doughnut chart */
+  if (hasData(evtData)) {
+    new Chart(document.getElementById('chartEvents').getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: evtLabels, datasets: [{ data: evtData }] },
+      options: { responsive: true }
+    });
+  } else {
+    document
+      .getElementById('chartEvents')
+      .insertAdjacentHTML('afterend',
+        '<p class="text-gray-500 italic">No events found</p>');
+  }
 </script>
 
-<%- include('../partials/footer') %>
-<!-- End of file: views/organiser-dashboard.ejs -->
-<!-- This file is part of the Event Manager project, which provides a platform for event organisers and
+<%- include('partials/footer') %>

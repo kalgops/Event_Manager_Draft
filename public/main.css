@@ -1,7 +1,9 @@
-body { font-family: sans-serif; margin: 20px; }
-h1 { margin-bottom: .5em; }
-.error { color: red; margin-left: 1em; }
-button { margin: 0 .5em; }
-form { margin-bottom: 1em; }
-ul { list-style: none; padding: 0; }
-li { margin: .5em 0; }
+/* public/css/main.css */
+body         { font-family: system-ui, sans-serif; background: #f8f9fa; margin: 0; }
+.container    { max-width: 960px; margin: 0 auto; padding: 1rem; }
+nav          { background:#fff; padding:0.5rem 1rem; box-shadow:0 2px 4px rgba(0,0,0,0.1); }
+nav a        { margin-right:1rem; color:#333; text-decoration:none; }
+.card        { background:#fff; border:1px solid #e1e1e1; border-radius:4px; padding:1rem; margin-bottom:1rem; }
+.btn         { display:inline-block; padding:.5rem 1rem; background:#007bff; color:#fff; border:none; border-radius:4px; cursor:pointer; text-decoration:none; }
+.btn:disabled{ opacity:.6; cursor:not-allowed; }
+h1, h2, h3   { margin-top:0; }

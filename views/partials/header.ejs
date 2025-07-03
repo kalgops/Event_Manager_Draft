@@ -1,18 +1,16 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title><%= title %> | Auction Gala Planner</title>
 
-  <!-- ↓ minimal yet pleasant styling stack -->
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-
-  <link rel="stylesheet" href="/css/main.css"><!-- optional personal tweaks -->
+  <link rel="stylesheet" href="/css/main.css">
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -21,7 +19,20 @@
       <a class="hover:text-blue-600" href="/">Home</a>
       <a class="hover:text-blue-600" href="/organiser">Organiser</a>
       <a class="hover:text-blue-600" href="/organiser/bookings">Bookings</a>
+      <a class="hover:text-blue-600" href="/organiser/dashboard">Dashboard</a>
       <a class="hover:text-blue-600" href="/attendee">Attendee</a>
+      <a class="hover:text-blue-600" href="/users">Users</a>
+
+      <span class="flex-1"></span>
+
+      <% if (session?.username) { %>
+        <span class="italic text-gray-600 mr-3">
+          Logged in as <%= session.username %>
+        </span>
+        <a class="hover:text-red-600" href="/logout">Logout</a>
+      <% } else { %>
+        <a class="hover:text-blue-600" href="/login">Login</a>
+      <% } %>
     </div>
   </nav>
   <main class="container mx-auto px-4 py-6">

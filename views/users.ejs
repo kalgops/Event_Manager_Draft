@@ -1,0 +1,30 @@
+<%- include('partials/header', { title: 'All Users' }) %>
+
+<h1 class="text-2xl font-bold mb-4">All Users</h1>
+
+<a href="/users/add" class="btn bg-blue-600 text-white px-3 py-1 rounded mb-4 inline-block">
+  + Add User
+</a>
+
+<% if (!users.length) { %>
+  <p>No users yet.</p>
+<% } else { %>
+  <table class="min-w-full bg-white shadow rounded">
+    <thead class="bg-gray-100">
+      <tr>
+        <th class="px-4 py-2 text-left">ID</th>
+        <th class="px-4 py-2 text-left">Username</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% users.forEach(u => { %>
+        <tr class="border-t">
+          <td class="px-4 py-2"><%= u.id %></td>
+          <td class="px-4 py-2"><%= u.user_name %></td>
+        </tr>
+      <% }) %>
+    </tbody>
+  </table>
+<% } %>
+
+<%- include('partials/footer') %>
