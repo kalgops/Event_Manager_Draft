@@ -1,0 +1,115 @@
+<%- include('partials/header', { title: 'Organiser Home' }) %>
+
+<div class="container mx-auto py-8">
+  <h1 class="text-3xl font-bold mb-2">Organiser Home Page</h1>
+  <h2 class="text-2xl font-semibold"><%= settings.name %></h2>
+  <p class="text-gray-600 mb-6"><%= settings.description %></p>
+
+  <div class="flex space-x-4 mb-6">
+    <a href="/organiser/settings"
+       class="px-4 py-2 bg-yellow-400 text-white rounded">Site Settings</a>
+    <button id="create-event"
+            class="px-4 py-2 bg-green-500 text-white rounded">Create New Event</button>
+    <a href="/organiser/bookings"
+       class="px-4 py-2 bg-blue-500 text-white rounded">View All Bookings</a>
+  </div>
+
+  <div class="md:flex md:space-x-6">
+    <!-- Published Events -->
+    <section class="md:w-1/2 mb-8 md:mb-0">
+      <h3 class="text-xl font-semibold mb-3">Published Events</h3>
+      <% if (published.length === 0) { %>
+        <p class="text-gray-500">None yet.</p>
+      <% } else { %>
+        <ul class="space-y-4">
+          <% published.forEach(e => { %>
+            <li class="p-4 bg-white shadow rounded">
+              <div class="flex justify-between">
+                <div>
+                  <div class="font-bold text-lg"><%= e.title %></div>
+                  <div class="text-sm text-gray-500">
+                    <%= e.event_date
+                          ? new Date(e.event_date).toLocaleDateString()
+                          : 'No date set' %>
+                    &nbsp;|&nbsp; Created:
+                    <%= new Date(e.created_at).toLocaleDateString() %>
+                    <% if (e.published_at) { %>
+                      &nbsp;|&nbsp; Published:
+                      <%= new Date(e.published_at).toLocaleDateString() %>
+                    <% } %>
+                  </div>
+                  <div class="text-xs text-gray-400 mt-1">
+                    Remaining tickets: <%= e.total_qty %>
+                  </div>
+                  <a href="/attendee/events/<%= e.id %>"
+                     class="text-blue-500 text-xs hover:underline" target="_blank">
+                    Share attendee link ↗
+                  </a>
+                </div>
+
+                <div class="space-x-2">
+                  <button data-id="<%= e.id %>"
+                          class="publish-btn px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded">
+                    Republish
+                  </button>
+                  <a href="/organiser/events/<%= e.id %>/edit"
+                     class="px-3 py-1 bg-gray-100 text-sm rounded">Edit</a>
+                  <button data-id="<%= e.id %>"
+                          class="delete-btn px-3 py-1 bg-red-100 text-red-700 text-sm rounded">
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </section>
+
+    <!-- Draft Events -->
+    <section class="md:w-1/2">
+      <h3 class="text-xl font-semibold mb-3">Draft Events</h3>
+      <% if (drafts.length === 0) { %>
+        <p class="text-gray-500">None yet.</p>
+      <% } else { %>
+        <ul class="space-y-4">
+          <% drafts.forEach(e => { %>
+            <li class="p-4 bg-white shadow rounded">
+              <div class="flex justify-between">
+                <div>
+                  <div class="font-bold"><%= e.title || 'Untitled' %></div>
+                  <div class="text-sm text-gray-500">
+                    Created:
+                    <%= new Date(e.created_at).toLocaleDateString() %>
+                    <% if (e.last_modified && e.last_modified !== e.created_at) { %>
+                      &nbsp;|&nbsp; Modified:
+                      <%= new Date(e.last_modified).toLocaleDateString() %>
+                    <% } %>
+                  </div>
+                  <div class="text-xs text-gray-400 mt-1">
+                    Remaining tickets: <%= e.total_qty %>
+                  </div>
+                </div>
+
+                <div class="space-x-2">
+                  <button data-id="<%= e.id %>"
+                          class="publish-btn px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded">
+                    Publish
+                  </button>
+                  <a href="/organiser/events/<%= e.id %>/edit"
+                     class="px-3 py-1 bg-gray-100 text-sm rounded">Edit</a>
+                  <button data-id="<%= e.id %>"
+                          class="delete-btn px-3 py-1 bg-red-100 text-red-700 text-sm rounded">
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </li>
+          <% }) %>
+        </ul>
+      <% } %>
+    </section>
+  </div>
+</div>
+
+<%- include('partials/footer') %>

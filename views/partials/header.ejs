@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title><%= title %> | Auction Gala Planner</title>
+
+  <!-- ↓ minimal yet pleasant styling stack -->
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <link rel="stylesheet" href="/css/main.css"><!-- optional personal tweaks -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body class="bg-gray-50 text-gray-800">
+  <nav class="bg-white shadow mb-6">
+    <div class="container mx-auto px-4 py-3 flex gap-6">
+      <a class="hover:text-blue-600" href="/">Home</a>
+      <a class="hover:text-blue-600" href="/organiser">Organiser</a>
+      <a class="hover:text-blue-600" href="/organiser/bookings">Bookings</a>
+      <a class="hover:text-blue-600" href="/attendee">Attendee</a>
+    </div>
+  </nav>
+  <main class="container mx-auto px-4 py-6">
