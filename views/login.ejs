@@ -1,23 +1,28 @@
-<%- include('partials/header', { title:'Login' }) %>
+<%- include('partials/header', { title: 'Organiser Login' }) %>
 
 <h1 class="text-2xl font-bold mb-4">Organiser Login</h1>
-<% if (error){ %><p class="text-red-600 mb-4"><%= error %></p><% } %>
 
-<form method="post" action="/login" class="space-y-4 max-w-sm">
+<% if (error) { %>
+  <p class="text-red-600 mb-4"><%= error %></p>
+<% } %>
+
+<form method="post" action="/login" class="space-y-4">
   <input type="hidden" name="next" value="<%= next %>">
 
   <label class="block">
-    <span class="mr-2">Username:</span>
-    <input name="username" class="border px-2 py-1 rounded w-full">
+    <span class="font-medium">Username:</span>
+    <input type="text" name="username" class="w-full border px-2 py-1 rounded" required>
   </label>
 
   <label class="block">
-    <span class="mr-2">Password:</span>
-    <input type="password" name="password"
-           class="border px-2 py-1 rounded w-full">
+    <span class="font-medium">Password:</span>
+    <input type="password" name="password" class="w-full border px-2 py-1 rounded" required>
   </label>
 
-  <button class="btn bg-blue-600 text-white px-4 py-2 rounded">Log in</button>
+  <button type="submit"
+          class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">
+    Log in
+  </button>
 </form>
 
 <%- include('partials/footer') %>

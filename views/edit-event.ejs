@@ -1,94 +1,116 @@
-<%- include('partials/header', { title: 'Organiser Edit Event' }) %>
+<%- include('partials/header', { title: `Edit Event #${event.id}` }) %>
 
-<div class="container mx-auto py-8">
+<div class="max-w-3xl mx-auto py-6">
   <h1 class="text-2xl font-bold mb-4">Edit Event #<%= event.id %></h1>
 
   <% if (errors.length) { %>
-    <div class="mb-4 p-3 bg-red-100 text-red-800 rounded">
-      <ul class="list-disc list-inside">
-        <% errors.forEach(e=>{ %><li><%= e %></li><% }) %>
-      </ul>
-    </div>
+    <ul class="mb-4 text-red-600 list-disc list-inside">
+      <% errors.forEach(e=>{ %><li><%= e %></li><% }) %>
+    </ul>
   <% } %>
 
-  <form action="/organiser/events/<%= event.id %>/edit" method="post" class="space-y-6">
-    <!-- Event Details -->
-    <fieldset class="border p-4 rounded space-y-4">
-      <legend class="font-semibold">Event Details</legend>
-      <label class="block">Title
-        <input name="title" class="w-full border rounded px-3 py-2" value="<%= event.title %>">
-      </label>
-      <label class="block">Description
-        <textarea name="description" class="w-full border rounded px-3 py-2"><%= event.description %></textarea>
-      </label>
-      <label class="block">Date
-        <input name="event_date" type="date" class="border rounded px-3 py-2"
-               value="<%= event.event_date?.split('T')[0]||'' %>">
-      </label>
-    </fieldset>
+  <form action="/organiser/events/<%= event.id %>/edit" method="post">
+    <div class="mb-4">
+      <label class="block font-medium mb-1" for="title">Title</label>
+      <input id="title" name="title" value="<%= event.title %>"
+             class="w-full border rounded px-3 py-2" required />
+    </div>
 
-    <!-- Ticket Types -->
-    <fieldset id="ticket-box" class="border p-4 rounded space-y-4">
-      <legend class="font-semibold">Ticket Types</legend>
-      <% tickets.forEach(t=>{ %>
-        <div class="grid grid-cols-12 gap-2 ticket-row">
-          <input class="col-span-4 border rounded px-2 py-1"
-                 name="tickets[<%= t.type %>][type]" value="<%= t.type %>" placeholder="Type">
-          <input class="col-span-3 border rounded px-2 py-1" type="number" min="0"
-                 name="tickets[<%= t.type %>][quantity]" value="<%= t.quantity %>" placeholder="Qty">
-          <input class="col-span-3 border rounded px-2 py-1" type="number" step="0.01" min="0"
-                 name="tickets[<%= t.type %>][price]" value="<%= t.price %>" placeholder="Price">
-          <button type="button" class="col-span-2 remove-btn text-red-600 text-sm">Remove</button>
+    <div class="mb-4">
+      <label class="block font-medium mb-1" for="description">Description</label>
+      <textarea id="description" name="description" rows="3"
+                class="w-full border rounded px-3 py-2"><%= event.description %></textarea>
+    </div>
+
+    <div class="mb-6">
+      <label class="block font-medium mb-1" for="event_date">Date</label>
+      <input id="event_date" name="event_date" type="date"
+             value="<%= event.event_date ? event.event_date.split('T')[0] : '' %>"
+             class="border rounded px-3 py-2" required />
+    </div>
+
+    <h2 class="text-xl font-semibold mb-2">Ticket Types</h2>
+    <div id="tickets-container" class="space-y-4 mb-4">
+      <% tickets.forEach(t => { %>
+        <div class="flex gap-4 items-end ticket-row">
+          <!-- existing ticket id -->
+          <input type="hidden" name="tickets[<%= t.id %>][id]" value="<%= t.id %>" />
+
+          <div class="flex-1">
+            <label class="block text-sm mb-1">Type</label>
+            <input name="tickets[<%= t.id %>][type]" value="<%= t.type %>"
+                   class="w-full border rounded px-2 py-1" required />
+          </div>
+
+          <div class="w-1/4">
+            <label class="block text-sm mb-1">Price ($)</label>
+            <input name="tickets[<%= t.id %>][price]" type="number" min="0" step="0.01"
+                   value="<%= t.price.toFixed(2) %>"
+                   class="w-full border rounded px-2 py-1" required />
+          </div>
+
+          <div class="w-1/4">
+            <label class="block text-sm mb-1">Quantity</label>
+            <input name="tickets[<%= t.id %>][quantity]" type="number" min="0"
+                   value="<%= t.quantity %>"
+                   class="w-full border rounded px-2 py-1" required />
+          </div>
+
+          <button type="button" class="remove-ticket text-red-600 hover:underline">
+            Remove
+          </button>
         </div>
       <% }) %>
-    </fieldset>
+    </div>
 
-    <button id="add-ticket" type="button"
-            class="px-3 py-1 bg-gray-200 rounded text-sm">+ Add ticket type</button>
+    <button type="button" id="add-ticket" class="mb-6 text-blue-600 hover:underline">
+      + Add ticket type
+    </button>
 
-    <div class="pt-4 space-x-4">
-      <button class="px-4 py-2 bg-blue-600 text-white rounded">Submit Changes</button>
-      <a href="/organiser" class="text-blue-600">← Back to Home</a>
+    <div>
+      <button type="submit"
+              class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition">
+        Submit Changes
+      </button>
+      <a href="/organiser" class="ml-4 text-gray-600 hover:underline">← Back to Home</a>
     </div>
   </form>
 </div>
 
 <script>
-// Add‐ticket and Remove‐ticket logic
-document.getElementById('add-ticket').onclick = () => {
-  const box = document.getElementById('ticket-box');
-  const id  = Date.now();
-  const row = document.createElement('div');
-  row.className = 'grid grid-cols-12 gap-2 ticket-row';
-  row.innerHTML = `
-    <input class="col-span-4 border rounded px-2 py-1"
-           name="tickets[${id}][type]" placeholder="Type">
-    <input class="col-span-3 border rounded px-2 py-1" type="number" min="0"
-           name="tickets[${id}][quantity]" placeholder="Qty">
-    <input class="col-span-3 border rounded px-2 py-1" type="number" step="0.01" min="0"
-           name="tickets[${id}][price]" placeholder="Price">
-    <button type="button" class="col-span-2 remove-btn text-red-600 text-sm">Remove</button>
+// dynamic add / remove
+let newIdx = 0;
+document.getElementById('add-ticket').addEventListener('click', () => {
+  const container = document.getElementById('tickets-container');
+  const idx = `new${newIdx++}`;
+  const div = document.createElement('div');
+  div.className = 'flex gap-4 items-end ticket-row';
+  div.innerHTML = `
+    <div class="flex-1">
+      <label class="block text-sm mb-1">Type</label>
+      <input name="tickets[${idx}][type]" class="w-full border rounded px-2 py-1" required/>
+    </div>
+    <div class="w-1/4">
+      <label class="block text-sm mb-1">Price ($)</label>
+      <input name="tickets[${idx}][price]" type="number" min="0" step="0.01"
+             value="0" class="w-full border rounded px-2 py-1" required/>
+    </div>
+    <div class="w-1/4">
+      <label class="block text-sm mb-1">Quantity</label>
+      <input name="tickets[${idx}][quantity]" type="number" min="0"
+             value="0" class="w-full border rounded px-2 py-1" required/>
+    </div>
+    <button type="button" class="remove-ticket text-red-600 hover:underline">
+      Remove
+    </button>
   `;
-  box.appendChild(row);
-};
-
-document.addEventListener('click', e => {
-  if (e.target.matches('.remove-btn')) {
+  container.appendChild(div);
+});
+document.getElementById('tickets-container').addEventListener('click', e => {
+  if (e.target.classList.contains('remove-ticket')) {
     e.target.closest('.ticket-row').remove();
   }
 });
 </script>
 
 <%- include('partials/footer') %>
-<!-- End of file: views/edit-event.ejs -->
-<!-- This file contains the form for editing an event, including ticket types and event details -->
-<!-- It uses EJS templating to render existing event data and handle form submission -->
-<!-- The script at the bottom allows dynamic addition/removal of ticket types -->
-<!-- The form submits to the organiser's edit event route, which processes the changes -->
-<!-- The page includes error handling to display validation messages if any -->
-<!-- The layout is responsive and uses Tailwind CSS for styling -->
-<!-- The header and footer partials are included for consistent layout across the site -->
-<!-- The form is structured to allow easy editing of event details and ticket types -->
-<!-- The JavaScript at the bottom handles adding new ticket types dynamically and removing existing ones -->
-<!-- The form uses standard HTML5 validation for required fields and numeric inputs -->
-<!-- The page is designed to be user-friendly for organisers managing their events -->

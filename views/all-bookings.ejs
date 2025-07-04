@@ -1,40 +1,50 @@
-<%- include('partials/header', { title:'All Bookings' }) %>
+<%- include('partials/header',{ title:'All Bookings' }) %>
 
-<h1 class="text-3xl font-bold mb-6">All Bookings</h1>
+<div class="max-w-4xl mx-auto py-8">
+  <h1 class="text-3xl font-bold mb-6">All Bookings</h1>
 
-<% if (!bookings.length) { %>
-  <p class="text-gray-500">No bookings yet.</p>
-<% } else { %>
-  <div class="overflow-x-auto">
-    <table class="min-w-full bg-white shadow rounded">
-      <thead class="bg-gray-100">
-        <tr>
-          <th class="px-4 py-2 text-left">When</th>
-          <th class="px-4 py-2 text-left">Event</th>
-          <th class="px-4 py-2 text-left">Ticket Type</th>
-          <th class="px-4 py-2 text-right">Qty</th>
-          <th class="px-4 py-2 text-left">Buyer</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% bookings.forEach(b => { %>
-          <tr class="border-t">
-            <td class="px-4 py-2 text-sm text-gray-600">
-              <%= new Date(b.booked_at).toLocaleString() %>
-            </td>
-            <td class="px-4 py-2"><%= b.event_title %></td>
-            <td class="px-4 py-2"><%= b.ticket_type %></td>
-            <td class="px-4 py-2 text-right"><%= b.qty %></td>
-            <td class="px-4 py-2"><%= b.buyer_name %></td>
+  <% if (bookings.length === 0) { %>
+    <p class="text-gray-500 italic">No bookings yet.</p>
+  <% } else { %>
+    <div class="overflow-x-auto">
+      <table class="min-w-full bg-white shadow rounded">
+        <thead>
+          <tr class="bg-gray-100 text-left">
+            <th class="px-4 py-2">#</th>
+            <th class="px-4 py-2">Event</th>
+            <th class="px-4 py-2">Ticket Type</th>
+            <th class="px-4 py-2">Buyer</th>
+            <th class="px-4 py-2">Qty</th>
+            <th class="px-4 py-2">Booked At</th>
           </tr>
-        <% }) %>
-      </tbody>
-    </table>
-  </div>
-<% } %>
+        </thead>
+        <tbody>
+          <% bookings.forEach((b,i)=>{ %>
+            <tr class="<%= i%2===0?'bg-white':'bg-gray-50' %>">
+              <td class="px-4 py-2"><%= b.id %></td>
+              <td class="px-4 py-2"><%= b.event_title %></td>
+              <td class="px-4 py-2"><%= b.ticket_type %></td>
+              <td class="px-4 py-2"><%= b.buyer_name %></td>
+              <td class="px-4 py-2"><%= b.qty %></td>
+              <td class="px-4 py-2">
+                <%= new Date(b.booked_at)
+                     .toLocaleString(undefined,{
+                       year:'numeric',month:'short',
+                       day:'numeric',hour:'2-digit',
+                       minute:'2-digit'
+                     }) %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  <% } %>
 
-<a href="/organiser" class="inline-block mt-6 text-blue-600 hover:underline">
-  &larr; Back to Dashboard
-</a>
+  <div class="mt-6">
+    <a href="/organiser/dashboard"
+       class="text-blue-600 hover:underline">← Back to Dashboard</a>
+  </div>
+</div>
 
 <%- include('partials/footer') %>
