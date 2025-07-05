@@ -1,25 +1,24 @@
 // routes/attendee.js
 const express = require('express');
+const Joi     = require('joi');
+const db      = require('../db');
 const router  = express.Router();
-const db      = global.db;
 
-// list published events + site settings
+// GET /attendee
 router.get('/', (req, res, next) => {
   db.get(
-    'SELECT name, description FROM site_settings LIMIT 1',
-    (e1, settings) => {
-      if (e1) return next(e1);
+    'SELECT * FROM site_settings WHERE organiser_id = 1',
+    (err, settings) => {
+      if (err) return next(err);
       db.all(
-        `SELECT id,title,event_date
-           FROM events
-          WHERE state='published'
-       ORDER BY datetime(event_date) ASC`,
-        (e2, events) => {
-          if (e2) return next(e2);
-          res.render('attendee-home',{
+        'SELECT * FROM events WHERE state = "published" ORDER BY event_date',
+        (err, events) => {
+          if (err) return next(err);
+          res.render('attendee-home', {
+            title:    'Attendee Home',
             settings,
             events,
-            booked: !!req.query.booked
+            booked:   false    // or pass true if you want to flag a recent booking
           });
         }
       );
@@ -27,26 +26,26 @@ router.get('/', (req, res, next) => {
   );
 });
 
-// show single event + tickets
-router.get('/events/:id',(req,res,next)=>{
-  const eid=req.params.id;
+// GET /attendee/events/:id
+router.get('/events/:id', (req, res, next) => {
+  const eid = req.params.id;
   db.get(
-    `SELECT e.*, ss.name, ss.description
-       FROM events e
-  JOIN site_settings ss ON ss.organiser_id=e.organiser_id
-      WHERE e.id=? AND e.state='published'`,
+    'SELECT * FROM events WHERE id = ? AND state = "published"',
     [eid],
-    (e1,event)=>{
-      if(e1) return next(e1);
-      if(!event) return res.status(404).render('404');
+    (err, event) => {
+      if (err) return next(err);
+      if (!event) return res.status(404).render('404', { title: 'Not Found' });
       db.all(
-        'SELECT id,type,price,quantity FROM tickets WHERE event_id=?',
+        'SELECT * FROM tickets WHERE event_id = ?',
         [eid],
-        (e2,tickets)=>{
-          if(e2) return next(e2);
-          res.render('attendee-event',{
-            settings:{name:event.name,description:event.description},
-            event,tickets,errors:[],formData:{}
+        (err, tickets) => {
+          if (err) return next(err);
+          res.render('attendee-event', {
+            title:     `Attend: ${event.title}`,
+            event,
+            tickets,
+            errors:    [],
+            formData:  {}             // no prior input on initial GET
           });
         }
       );
@@ -54,49 +53,75 @@ router.get('/events/:id',(req,res,next)=>{
   );
 });
 
-// handle booking + stock deduction
-router.post('/events/:id/book',(req,res,next)=>{
-  const eid=req.params.id;
-  db.get('SELECT * FROM events WHERE id=? AND state="published"',
-    [eid],(e1,event)=>{
-      if(e1) return next(e1);
-      if(!event) return res.status(404).render('404');
-      db.all('SELECT id,quantity FROM tickets WHERE event_id=?',
-        [eid],(e2,tickets)=>{
-          if(e2) return next(e2);
-          const want = tickets.map(t=>({
-            id:t.id,
-            want:parseInt(req.body[`tickets[${t.id}][quantity]`],10)||0,
-            avail:t.quantity
-          }));
-          const over = want.find(d=>d.want>d.avail);
-          if(over){
-            return res.render('attendee-event',{
-              settings:{},
-              event,tickets,
-              errors:[{msg:`Only ${over.avail} tickets left.`}],
-              formData:req.body
+// POST /attendee/events/:id/book
+router.post('/events/:id/book', (req, res, next) => {
+  const eid = req.params.id;
+  const schema = Joi.object({
+    ticket_id: Joi.number().integer().required(),
+    quantity:  Joi.number().integer().min(1).required(),
+    name:      Joi.string().required(),
+    email:     Joi.string().email().required()
+  });
+
+  const { error, value } = schema.validate(req.body, { abortEarly: false });
+  if (error) {
+    const msgs = error.details.map(d => d.message);
+    return db.all(
+      'SELECT * FROM tickets WHERE event_id = ?',
+      [eid],
+      (err, tickets) => {
+        if (err) return next(err);
+        res.render('attendee-event', {
+          title:     'Book Event',
+          event:     { id: eid },
+          tickets,
+          errors:    msgs,
+          formData:  req.body   // preserve the user’s inputs
+        });
+      }
+    );
+  }
+
+  // Check ticket availability
+  db.get(
+    'SELECT quantity FROM tickets WHERE id = ?',
+    [value.ticket_id],
+    (err, row) => {
+      if (err) return next(err);
+      if (!row || row.quantity < value.quantity) {
+        return db.all(
+          'SELECT * FROM tickets WHERE event_id = ?',
+          [eid],
+          (err, tickets) => {
+            if (err) return next(err);
+            res.render('attendee-event', {
+              title:     'Book Event',
+              event:     { id: eid },
+              tickets,
+              errors:    ['Not enough tickets available'],
+              formData:  req.body
             });
           }
-          db.serialize(()=>{
-            db.run('BEGIN');
-            want.forEach(d=>{
-              if(d.want>0){
-                db.run('UPDATE tickets SET quantity=quantity-? WHERE id=?',
-                  [d.want,d.id]);
-                db.run(`INSERT INTO bookings
-                          (event_id,ticket_id,buyer_name,qty)
-                         VALUES(?,?,?,?)`,
-                  [eid,d.id,req.body.name.trim(),d.want]);
-              }
-            });
-            db.run('COMMIT',err3=>{
-              if(err3) return next(err3);
-              res.redirect('/attendee?booked=1');
-            });
-          });
-        }
-      );
+        );
+      }
+
+      // Perform the booking in a transaction
+      db.serialize(() => {
+        db.run('BEGIN');
+        db.run(
+          'INSERT INTO bookings(event_id, ticket_id, buyer_name, qty) VALUES(?,?,?,?)',
+          [eid, value.ticket_id, value.name, value.quantity]
+        );
+        db.run(
+          'UPDATE tickets SET quantity = quantity - ? WHERE id = ?',
+          [value.quantity, value.ticket_id]
+        );
+        db.run('COMMIT', err => {
+          if (err) return next(err);
+          // Redirect to home with a “booked” flag if you like
+          res.redirect('/attendee');
+        });
+      });
     }
   );
 });

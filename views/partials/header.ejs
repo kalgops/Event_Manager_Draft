@@ -1,39 +1,55 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title><%= title %> | Auction Gala Planner</title>
+  <script>document.documentElement.classList.remove('no-js');</script>
 
-  <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
+  <!-- Normalize & Tailwind -->
+  <link 
+    rel="stylesheet" 
+    href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css"
+  >
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet"
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link 
+    rel="stylesheet" 
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  >
   <link rel="stylesheet" href="/css/main.css">
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+  <!-- Barba.js & GSAP for transitions -->
+  <script src="https://unpkg.com/@barba/core"></script>
+  <script src="https://unpkg.com/gsap"></script>
 </head>
 <body class="bg-gray-50 text-gray-800">
+
+  <!-- Navigation Bar -->
   <nav class="bg-white shadow mb-6">
-    <div class="container mx-auto px-4 py-3 flex gap-6">
-      <a class="hover:text-blue-600" href="/">Home</a>
-      <a class="hover:text-blue-600" href="/organiser">Organiser</a>
-      <a class="hover:text-blue-600" href="/organiser/bookings">Bookings</a>
-      <a class="hover:text-blue-600" href="/organiser/dashboard">Dashboard</a>
-      <a class="hover:text-blue-600" href="/attendee">Attendee</a>
-      <a class="hover:text-blue-600" href="/users">Users</a>
-
-      <span class="flex-1"></span>
-
+    <div class="container mx-auto px-4 py-3 flex items-center">
+      <a href="/" class="mr-6 font-bold text-lg hover:text-blue-600">
+        Auction Gala Planner
+      </a>
+      <a href="/organiser" class="mr-4 hover:text-blue-600">Organiser</a>
+      <a href="/organiser/bookings" class="mr-4 hover:text-blue-600">Bookings</a>
+      <a href="/organiser/dashboard" class="mr-4 hover:text-blue-600">Dashboard</a>
+      <a href="/attendee" class="hover:text-blue-600">Attendee</a>
+      <div class="flex-1"></div>
       <% if (session?.username) { %>
-        <span class="italic text-gray-600 mr-3">
+        <span class="italic text-gray-600 mr-4">
           Logged in as <%= session.username %>
         </span>
-        <a class="hover:text-red-600" href="/logout">Logout</a>
+        <a href="/logout" class="hover:text-red-600">Logout</a>
       <% } else { %>
-        <a class="hover:text-blue-600" href="/login">Login</a>
+        <a href="/login" class="hover:text-blue-600">Login</a>
       <% } %>
     </div>
   </nav>
-  <main class="container mx-auto px-4 py-6">
-    <% if (session?.isAdmin) { %> … <% } %>
+
+  <!-- Open Barba wrapper -->
+  <div id="barba-wrapper">
+    <div 
+      class="barba-container" 
+      data-barba="container" 
+      data-barba-namespace="<%= title.toLowerCase().replace(/\s+/g,'-') %>"
+    >

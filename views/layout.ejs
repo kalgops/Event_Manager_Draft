@@ -1,0 +1,16 @@
+<%- include('partials/header', { title }) %>
+
+<main class="container mx-auto px-4 py-6">
+  <!-- Barba will swap the contents of this container -->
+  <div id="barba-wrapper">
+    <div 
+      class="barba-container" 
+      data-barba="container" 
+      data-barba-namespace="<%= title.toLowerCase().replace(/\s+/g,'-') %>"
+    >
+      <%- body %>
+    </div>
+  </div>
+</main>
+
+<%- include('partials/footer') %>

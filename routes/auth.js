@@ -1,45 +1,49 @@
 // routes/auth.js
-// -----------------------------------------------------------
-// Login / logout for organisers.  Stores organiserId + username
-// in the session after bcrypt verification.
-// -----------------------------------------------------------
-
 const express = require('express');
 const bcrypt  = require('bcrypt');
+const db      = require('../db');      // <-- ensure this import
 const router  = express.Router();
-const db      = global.db;
 
-/* GET  /login – render form */
+// GET /login
 router.get('/login', (req, res) =>
-  res.render('login', {
-    error : null,
-    next  : req.query.next || '/organiser'
-  })
+  res.render('login', { title: 'Login', errors: [] })
 );
 
-/* POST /login – process form */
+// POST /login
 router.post('/login', (req, res, next) => {
-  const { username, password, next: nextUrl } = req.body;
+  const { username, password } = req.body;
+  const errors = [];
+  if (!username) errors.push('Username required');
+  if (!password) errors.push('Password required');
+  if (errors.length) {
+    return res.render('login', { title: 'Login', errors });
+  }
 
-  db.get('SELECT * FROM organisers WHERE username = ?', [username.trim()], async (err, org) => {
-    if (err) return next(err);
-    if (!org) return res.render('login', { error: 'Bad credentials', next: nextUrl });
-
-    try {
-      const ok = await bcrypt.compare(password, org.password_hash);
-      if (!ok) return res.render('login', { error: 'Bad credentials', next: nextUrl });
-
-      // success
-      req.session.organiserId = org.id;
-      req.session.username    = org.username;
-      res.redirect(nextUrl || '/organiser');
-    } catch (e) { next(e); }
-  });
+  db.get(
+    'SELECT * FROM organisers WHERE username = ?',
+    [username],
+    (err, user) => {
+      if (err) return next(err);
+      if (!user) {
+        return res.render('login', { title: 'Login', errors: ['Invalid credentials'] });
+      }
+      bcrypt.compare(password, user.password_hash, (err, ok) => {
+        if (err) return next(err);
+        if (!ok) {
+          return res.render('login', { title: 'Login', errors: ['Invalid credentials'] });
+        }
+        req.session.organiserId = user.id;
+        req.session.username    = user.username;
+        req.session.isAdmin     = true;
+        res.redirect('/organiser');
+      });
+    }
+  );
 });
 
-/* GET /logout */
-router.get('/logout', (req, res) =>
-  req.session.destroy(() => res.redirect('/login'))
-);
+// GET /logout
+router.get('/logout', (req, res) => {
+  req.session.destroy(() => res.redirect('/'));
+});
 
 module.exports = router;
