@@ -1,64 +1,33 @@
-<%- include('partials/header', { title: 'Organiser Home' }) %>
+<%- include('partials/header', { title: 'Organiser Dashboard' }) %>
 
-<div class="container mx-auto py-8">
-  <h1 class="text-3xl font-bold mb-2">Organiser Home Page</h1>
-  <h2 class="text-2xl font-semibold"><%= settings.name %></h2>
-  <p class="text-gray-600 mb-6"><%= settings.description %></p>
+<div class="max-w-5xl mx-auto py-10">
+  <h1 class="text-3xl font-bold mb-6">Your Events Dashboard</h1>
 
-  <div class="flex space-x-4 mb-6">
-    <a href="/organiser/settings"
-       class="px-4 py-2 bg-yellow-400 text-white rounded">Site Settings</a>
-    <button id="create-event"
-            class="px-4 py-2 bg-green-500 text-white rounded">Create New Event</button>
-    <a href="/organiser/bookings"
-       class="px-4 py-2 bg-blue-500 text-white rounded">View All Bookings</a>
+  <div class="mb-4">
+    <a href="/organiser/settings" class="text-blue-600 hover:underline">⚙️ Edit Site Settings</a>
   </div>
 
-  <div class="md:flex md:space-x-6">
+  <% if (flash.success && flash.success.length) { %>
+    <div class="bg-green-100 text-green-800 p-4 rounded mb-6">
+      <%= flash.success[0] %>
+    </div>
+  <% } %>
+
+  <div class="grid md:grid-cols-2 gap-8">
     <!-- Published Events -->
-    <section class="md:w-1/2 mb-8 md:mb-0">
-      <h3 class="text-xl font-semibold mb-3">Published Events</h3>
+    <section>
+      <h2 class="text-xl font-semibold mb-3">Published Events</h2>
       <% if (published.length === 0) { %>
-        <p class="text-gray-500">None yet.</p>
+        <p class="text-gray-500">No published events yet.</p>
       <% } else { %>
         <ul class="space-y-4">
-          <% published.forEach(e => { %>
-            <li class="p-4 bg-white shadow rounded">
-              <div class="flex justify-between">
-                <div>
-                  <div class="font-bold text-lg"><%= e.title %></div>
-                  <div class="text-sm text-gray-500">
-                    <%= e.event_date
-                          ? new Date(e.event_date).toLocaleDateString()
-                          : 'No date set' %>
-                    &nbsp;|&nbsp; Created:
-                    <%= new Date(e.created_at).toLocaleDateString() %>
-                    <% if (e.published_at) { %>
-                      &nbsp;|&nbsp; Published:
-                      <%= new Date(e.published_at).toLocaleDateString() %>
-                    <% } %>
-                  </div>
-                  <div class="text-xs text-gray-400 mt-1">
-                    Remaining tickets: <%= e.total_qty %>
-                  </div>
-                  <a href="/attendee/events/<%= e.id %>"
-                     class="text-blue-500 text-xs hover:underline" target="_blank">
-                    Share attendee link ↗
-                  </a>
-                </div>
-
-                <div class="space-x-2">
-                  <button data-id="<%= e.id %>"
-                          class="publish-btn px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded">
-                    Republish
-                  </button>
-                  <a href="/organiser/events/<%= e.id %>/edit"
-                     class="px-3 py-1 bg-gray-100 text-sm rounded">Edit</a>
-                  <button data-id="<%= e.id %>"
-                          class="delete-btn px-3 py-1 bg-red-100 text-red-700 text-sm rounded">
-                    Delete
-                  </button>
-                </div>
+          <% published.forEach(event => { %>
+            <li class="card p-4 border border-gray-200 rounded shadow-sm">
+              <h3 class="font-bold text-lg"><%= event.title %></h3>
+              <p class="text-sm text-gray-600 mb-2"><%= event.event_date || 'No date set' %></p>
+              <div class="flex gap-4">
+                <a href="/organiser/events/<%= event.id %>/edit" class="text-blue-600 hover:underline">Edit</a>
+                <button type="button" data-id="<%= event.id %>" class="delete-btn text-red-600 hover:underline">Delete</button>
               </div>
             </li>
           <% }) %>
@@ -67,48 +36,34 @@
     </section>
 
     <!-- Draft Events -->
-    <section class="md:w-1/2">
-      <h3 class="text-xl font-semibold mb-3">Draft Events</h3>
+    <section>
+      <h2 class="text-xl font-semibold mb-3">Draft Events</h2>
       <% if (drafts.length === 0) { %>
-        <p class="text-gray-500">None yet.</p>
+        <p class="text-gray-500">No draft events yet.</p>
       <% } else { %>
         <ul class="space-y-4">
-          <% drafts.forEach(e => { %>
-            <li class="p-4 bg-white shadow rounded">
-              <div class="flex justify-between">
-                <div>
-                  <div class="font-bold"><%= e.title || 'Untitled' %></div>
-                  <div class="text-sm text-gray-500">
-                    Created:
-                    <%= new Date(e.created_at).toLocaleDateString() %>
-                    <% if (e.last_modified && e.last_modified !== e.created_at) { %>
-                      &nbsp;|&nbsp; Modified:
-                      <%= new Date(e.last_modified).toLocaleDateString() %>
-                    <% } %>
-                  </div>
-                  <div class="text-xs text-gray-400 mt-1">
-                    Remaining tickets: <%= e.total_qty %>
-                  </div>
-                </div>
-
-                <div class="space-x-2">
-                  <button data-id="<%= e.id %>"
-                          class="publish-btn px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded">
-                    Publish
-                  </button>
-                  <a href="/organiser/events/<%= e.id %>/edit"
-                     class="px-3 py-1 bg-gray-100 text-sm rounded">Edit</a>
-                  <button data-id="<%= e.id %>"
-                          class="delete-btn px-3 py-1 bg-red-100 text-red-700 text-sm rounded">
-                    Delete
-                  </button>
-                </div>
+          <% drafts.forEach(event => { %>
+            <li class="card p-4 border border-gray-200 rounded shadow-sm">
+              <h3 class="font-bold text-lg"><%= event.title %></h3>
+              <p class="text-sm text-gray-600 mb-2"><%= event.event_date || 'No date set' %></p>
+              <div class="flex gap-4">
+                <a href="/organiser/events/<%= event.id %>/edit" class="text-blue-600 hover:underline">Continue Editing</a>
+                <button type="button" data-id="<%= event.id %>" class="publish-btn text-green-600 hover:underline">Publish</button>
+                <button type="button" data-id="<%= event.id %>" class="delete-btn text-red-600 hover:underline">Delete</button>
               </div>
             </li>
           <% }) %>
         </ul>
       <% } %>
     </section>
+  </div>
+
+  <div class="mt-10">
+    <form method="POST" action="/organiser/events/create">
+      <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+        + Create New Event
+      </button>
+    </form>
   </div>
 </div>
 

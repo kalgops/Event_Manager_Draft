@@ -6,11 +6,22 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title><%= title %></title>
   <link href="/css/main.css" rel="stylesheet" />
+    <!-- inside header.ejs -->
+<link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="https://unpkg.com/gsap@3/dist/gsap.min.js"></script>
 </head>
 <body class="antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
   <header class="p-4 shadow-md bg-white dark:bg-gray-800">
-    <div class="container mx-auto flex items-center">
+    <div class="container mx-auto flex justify-between items-center">
       <a href="/" class="text-xl font-bold">Event Manager</a>
-      <!-- your nav… -->
+      <nav class="flex gap-4 items-center">
+        <% if (user) { %>
+          <span>Welcome, <%= user.username %></span>
+          <a href="/auth/logout" class="text-blue-600 hover:underline">Logout</a>
+        <% } else { %>
+          <a href="/auth/login" class="text-blue-600 hover:underline">Login</a>
+        <% } %>
+      </nav>
     </div>
   </header>

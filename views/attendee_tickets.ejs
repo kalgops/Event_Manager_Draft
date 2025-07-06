@@ -1,0 +1,32 @@
+<%- include('partials/header', { title: 'My Tickets' }) %>
+
+<div class="max-w-5xl mx-auto py-10 px-4">
+  <h1 class="text-3xl font-bold mb-6">🎟️ My Booked Tickets</h1>
+
+  <% if (!bookings || bookings.length === 0) { %>
+    <div class="text-center text-gray-500 py-16">
+      <i class="fas fa-ticket-alt text-4xl mb-4"></i>
+      <p>You haven't booked any tickets yet.</p>
+      <a href="/attendee" class="mt-4 inline-block bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700">Browse Events</a>
+    </div>
+  <% } else { %>
+    <div class="space-y-6">
+      <% bookings.forEach(b => { %>
+        <div class="border border-gray-300 rounded-lg p-6 bg-white shadow">
+          <h2 class="text-xl font-semibold text-blue-700 mb-1"><%= b.event_title %></h2>
+          <p class="text-sm text-gray-600 mb-2">
+            <strong>Date:</strong>
+            <%= new Date(b.event_date).toLocaleDateString('en-GB', {
+              year: 'numeric', month: 'long', day: 'numeric'
+            }) %>
+          </p>
+          <p class="text-sm text-gray-600"><strong>Tickets:</strong> <%= b.qty %></p>
+          <p class="text-sm text-gray-600"><strong>Status:</strong> <%= b.payment_status %></p>
+          <p class="text-xs text-gray-400 mt-2">Booked at: <%= new Date(b.booked_at).toLocaleString('en-GB') %></p>
+        </div>
+      <% }) %>
+    </div>
+  <% } %>
+</div>
+
+<%- include('partials/footer') %>

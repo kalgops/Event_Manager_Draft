@@ -1,36 +1,31 @@
 {
   "name": "auction-gala-planner",
   "version": "1.0.0",
-  "description": "Tailwind & Axios-powered Auction Gala Planner",
+  "description": "Event Manager App for organisers and attendees",
   "main": "index.js",
   "scripts": {
+    "start": "node index1.js",
+    "dev": "nodemon index1.js",
     "build-db": "node build-db.js",
-    "build:css": "tailwindcss -i src/styles/tailwind.css -o public/css/main.css --minify",
-    "dev:css": "tailwindcss -i src/styles/tailwind.css -o public/css/main.css --watch",
-    "start": "node index.js"
+    "seed": "node seed-data.js",
+    "init-db": "npm run build-db && npm run seed"
   },
+  "keywords": [],
+  "author": "kalgops",
+  "license": "MIT",
   "dependencies": {
-    "axios": "^1.5.0",
     "bcrypt": "^5.1.1",
-    "chart.js": "^4.4.0",
-    "concurrently": "^9.2.0",
+    "compression": "^1.8.0",
     "connect-flash": "^0.1.1",
-    "cookie-parser": "^1.4.7",
-    "dayjs": "^1.11.13",
+    "cors": "^2.8.5",
     "dotenv": "^17.0.1",
-    "ejs": "^3.1.10",
-    "express": "^4.18.2",
-    "express-session": "^1.17.3",
-    "express-validator": "^7.2.1",
-    "helmet": "^8.1.0",
-    "joi": "^17.13.3",
-    "nodemon": "^3.1.10",
-    "portfinder": "^1.0.32",
+    "ejs": "^3.1.9",
+    "express": "^4.21.2",
+    "express-session": "^1.18.1",
+    "portfinder": "^1.0.37",
     "sqlite3": "^5.1.6"
   },
   "devDependencies": {
-    "autoprefixer": "^10.4.21",
-    "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.17"
+    "nodemon": "^2.0.22"
   }
 }

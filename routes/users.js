@@ -1,7 +1,7 @@
 // routes/users.js
 const express = require('express');
 const router = express.Router();
-const db = require('../db');
+const db = global.db; // ✅ Fix: use global.db
 
 // GET /users
 router.get('/', (req, res, next) => {
@@ -12,4 +12,4 @@ router.get('/', (req, res, next) => {
 });
 
 module.exports = router;
-// This code handles the user management routes, allowing admins to view a list of users.
+// This file handles user-related routes, such as listing all users.

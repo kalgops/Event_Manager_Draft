@@ -1,4 +1,5 @@
 .
+├── .DS_Store
 ├── .git
 │   ├── COMMIT_EDITMSG
 │   ├── FETCH_HEAD
@@ -31,6 +32,8 @@
 │   │       │   └── main
 │   │       └── remotes
 │   │           └── origin
+│   │               ├── 9v8gvf-codex
+│   │               │   └── fix-bugs-and-ensure-functionality
 │   │               ├── HEAD
 │   │               ├── codex
 │   │               │   └── fix-bugs-and-ensure-functionality
@@ -71,13 +74,15 @@
 │   │   │   ├── 3506aad20e6c16d2029faff59c5b13ec55bae2
 │   │   │   └── 4957f0428a5eaa97519423faa597edcda37632
 │   │   ├── 21
+│   │   │   ├── 5502ad8f6737b03311b7853ba8c5f6b4f86cf7
 │   │   │   └── b3622ba058b439838b572d5420fc75c188676e
 │   │   ├── 26
 │   │   │   └── bdf1236b033f0760ba7d4c6a0b3d33c85c4360
 │   │   ├── 27
 │   │   │   └── 30f20a7f608c1c910ac2ac5e6db930e81bc694
 │   │   ├── 28
-│   │   │   └── 7dd11593f808f8c52e52c98f42c2c303fcc4f4
+│   │   │   ├── 7dd11593f808f8c52e52c98f42c2c303fcc4f4
+│   │   │   └── 89507d15a4d58b440d88b527b5ba6d8872dd7d
 │   │   ├── 2a
 │   │   │   └── d47bdbf24a5150bb48e42eb62842a3a98cdaec
 │   │   ├── 2e
@@ -125,17 +130,21 @@
 │   │   │   ├── 3ac03b381c3d33b44b589b9a3713aa9f866c6b
 │   │   │   └── 987a91e1638d373f3296dc61127146b5904302
 │   │   ├── 51
+│   │   │   ├── 2ba3387db60bf456dcf1ea732fa1999b895181
 │   │   │   └── 8ccbc960837ff47c82f3d98887804db010e762
 │   │   ├── 52
 │   │   │   ├── 2999b514eebb58348a114a853c620e89aa1ece
 │   │   │   └── 69ae4d4ba329c2a9fa1ba9fc12f5130943c783
 │   │   ├── 53
 │   │   │   └── 631fabd6bd8640b015b96d79d2f66bcca1626d
+│   │   ├── 55
+│   │   │   └── f62600484252012f780bd1af9d91cdb266d1f0
 │   │   ├── 57
 │   │   │   └── adebec3415ff4cc89dc8ef6ed2b4d9aa37a11f
 │   │   ├── 58
 │   │   │   └── 5ba4fe40f33546559c91532e9928a80201ae6f
 │   │   ├── 5d
+│   │   │   ├── 745c8b15934d666c3c27ab78612b7742f5f3f3
 │   │   │   └── b77d23fe2106bf1f6377792fa3cfe5556c34bd
 │   │   ├── 5f
 │   │   │   └── b73bad02a1d1b1b3dae3f8cd7fcc51cdbbb306
@@ -161,6 +170,10 @@
 │   │   │   └── a2628ef81fd901b5cc8cbf7ccdd246d5e26a12
 │   │   ├── 71
 │   │   │   └── b1168b6b78a3177640cd4b0ab7c3ca5d461afd
+│   │   ├── 73
+│   │   │   └── 41ea9b5842b843873e4084f17fd55b8694b807
+│   │   ├── 74
+│   │   │   └── 782ce56eb246c0ad3b2e50b46f85228d92e8f4
 │   │   ├── 75
 │   │   │   └── 244128f1592e6ad1164ba3008bb97484343c57
 │   │   ├── 77
@@ -183,8 +196,15 @@
 │   │   ├── 83
 │   │   │   ├── 69c2850bc24c427b5c502f7636fab8f512fae8
 │   │   │   └── fc19336b4a77e64b39ca9ee82389175ef94d7e
+│   │   ├── 84
+│   │   │   └── a560153862d4d21b7789a120b5e9b3699053c7
+│   │   ├── 85
+│   │   │   ├── 95bcb7e7513e02fccda51969406505142b3fd3
+│   │   │   └── b1c9e28c937a23375c1ebcd82c2dba4cc8ad87
 │   │   ├── 87
 │   │   │   └── a0deddbec6dbb66f4b37b8f269b8872d5236a6
+│   │   ├── 89
+│   │   │   └── bdfadb77007f84ccebc0a1bb42248ea9e800b3
 │   │   ├── 8a
 │   │   │   ├── c8b8bff3f70d25c2b713f83ffdc11bb36ba91c
 │   │   │   └── d442432db27d6457d27416876b7e5f0b40c3f2
@@ -194,7 +214,12 @@
 │   │   │   └── 4dcda2f776a9fe4164d1d26559e5ee9c1f0492
 │   │   ├── 91
 │   │   │   └── 19cbc6ea9da2966e0205a80549128ddca58949
+│   │   ├── 92
+│   │   │   └── c1cb1560c59bf1cffdcef55724dc115a19b88b
+│   │   ├── 93
+│   │   │   └── 60b4d9193331e4c11fc6209574a97c73377780
 │   │   ├── 94
+│   │   │   ├── df3b82173deced5b308004162daf94f39a4d1d
 │   │   │   └── f50382343f3814f5305137f1382e0a56c36101
 │   │   ├── 96
 │   │   │   └── fd108825109bbbe2f01ebdefe63cc76cc4c793
@@ -245,6 +270,7 @@
 │   │   ├── b2
 │   │   │   └── 77a374ead950644f5435db9102fe737d457dda
 │   │   ├── b4
+│   │   │   ├── bdbeb6c1e0113ff939cff6f98b97d2dfdc29ce
 │   │   │   └── c852c15202b26e08e242dbf58dd6456805496b
 │   │   ├── b5
 │   │   │   ├── 06c5f78d248362d8ec346c00707ba466b274d5
@@ -257,7 +283,10 @@
 │   │   ├── b9
 │   │   │   └── 483809c6febf1623710dc118af782d8adacd5b
 │   │   ├── bb
+│   │   │   ├── 497d2d9410f5c8a94faa1d812f3667ec397cb6
 │   │   │   └── 6a882b354783d81fb8d199e97813c690de5ac6
+│   │   ├── be
+│   │   │   └── a7b6921e336dfbd85f72bd920e158f00c284e3
 │   │   ├── c0
 │   │   │   └── 431caddb10ef2c33a4bf0352ed0233642dcecb
 │   │   ├── c1
@@ -271,6 +300,7 @@
 │   │   ├── c7
 │   │   │   └── fcb18d4693cf644d10596e8d21d20dd310ee88
 │   │   ├── c8
+│   │   │   ├── 1f79a48485966f16fb5c4628a3594b5c05594d
 │   │   │   └── c8f4874a310f1e318e96f6c89d0b61b2da99a2
 │   │   ├── c9
 │   │   │   └── 5eb1d4787db061f3759a798a3c974d13173d44
@@ -279,6 +309,8 @@
 │   │   ├── cb
 │   │   │   ├── 5bba2176ac073f6b71bfdbdd8c84b557271d38
 │   │   │   └── 8d60db4f882ab457271fb359cde49f8f09a242
+│   │   ├── cc
+│   │   │   └── 00b649bce68cb30b14f0c9dad326375fb3dc9c
 │   │   ├── ce
 │   │   │   └── 1e121474944e44c562d4f256e86dd7250b9638
 │   │   ├── d1
@@ -297,11 +329,14 @@
 │   │   │   └── e165084c77f60571f39ebde88ded34f476ec70
 │   │   ├── dc
 │   │   │   └── 83507112b168da012661f0c61afaaddaffa9ac
+│   │   ├── de
+│   │   │   └── 2798a566a8983c3e70653bed50e0bfcd089f30
 │   │   ├── df
 │   │   │   ├── 533f36a541e6925b20d129f6c809b02a719506
 │   │   │   ├── e0770424b2a19faf507a501ebfc23be8f54e7b
 │   │   │   └── f21150932f23d589453ca93fbcc3d0f0f79aed
 │   │   ├── e0
+│   │   │   ├── 1126809c3c7ede3495c4bf3fcfcbc89bd7e43a
 │   │   │   └── 223c62ad9832c749b10e9decbe2716020bb5ea
 │   │   ├── e1
 │   │   │   └── dfccbae7aa9c8726e84e636e5aa1dde4fbc6da
@@ -314,7 +349,8 @@
 │   │   ├── e8
 │   │   │   └── 6c0caa447ac4585d88ebfa6485182c72621cc8
 │   │   ├── eb
-│   │   │   └── 4fee4640e5a3ce48045dfc3f955e1f3855481f
+│   │   │   ├── 4fee4640e5a3ce48045dfc3f955e1f3855481f
+│   │   │   └── d163137cdd7a18a63847ae982f742278b4bf59
 │   │   ├── ef
 │   │   │   ├── ab2b934063c3249edb2c6e437838a0e1338ed0
 │   │   │   └── f558664c2e46737121f9c75864ec1759bce601
@@ -336,6 +372,7 @@
 │   │   │   └── 7ef87369847f2c5b9836770c1219f8c9b33d3f
 │   │   ├── fd
 │   │   │   ├── 07dbbd6f54be9a63dbd9ac90a65976f880aae5
+│   │   │   ├── 4547835618eb0c4493cf6ee71a9564cc8774f1
 │   │   │   └── c8cd4e2615f17e61fdd2f6afdfc7e48050472f
 │   │   ├── fe
 │   │   │   └── 7218910aec57522af0741aaa94f2d76395f7e6
@@ -346,6 +383,8 @@
 │       │   └── main
 │       ├── remotes
 │       │   └── origin
+│       │       ├── 9v8gvf-codex
+│       │       │   └── fix-bugs-and-ensure-functionality
 │       │       ├── HEAD
 │       │       ├── codex
 │       │       │   └── fix-bugs-and-ensure-functionality
@@ -354,9 +393,8 @@
 ├── .gitattributes
 ├── .gitignore
 ├── README.md
-├── build-db.js
 ├── database.db
-├── db.js
+├── db_schema.sql
 ├── index.js
 ├── middleware
 │   └── auth.js
@@ -375,6 +413,7 @@
 │   ├── admin.js
 │   ├── attendee.js
 │   ├── auth.js
+│   ├── index.js
 │   ├── organiser.js
 │   ├── payment.js
 │   └── users.js
@@ -383,7 +422,7 @@
 │   └── styles
 │       └── tailwind.css
 ├── storage
-│   └── db_schema.sql
+│   └── .DS_Store
 ├── tailwind.config.js
 └── views
     ├── 404.ejs
@@ -401,10 +440,10 @@
     ├── organiser-bookings.ejs
     ├── organiser-dashboard.ejs
     ├── organiser-home.ejs
+    ├── organiser-settings.ejs
     ├── partials
     │   ├── footer.ejs
     │   └── header.ejs
-    ├── site-settings.ejs
     └── users.ejs
 
-160 directories, 248 files
+173 directories, 274 files

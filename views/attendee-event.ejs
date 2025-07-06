@@ -10,7 +10,10 @@
         <i class="fas fa-calendar mr-2"></i>
         <span class="text-lg">
           <%= new Date(event.event_date).toLocaleDateString('en-GB', {
-            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            weekday: 'long',
+            year: 'numeric',
+            month: 'long',
+            day: 'numeric'
           }) %>
         </span>
       </div>
@@ -18,8 +21,7 @@
 
     <div class="p-8">
 
-      <!-- Errors -->
-      <% if (errors.length) { %>
+      <% if (errors && errors.length) { %>
         <div class="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
           <h3 class="text-red-800 font-semibold mb-2">
             <i class="fas fa-exclamation-triangle mr-1"></i> Booking Error
@@ -32,9 +34,7 @@
         </div>
       <% } %>
 
-      <!-- Booking Form -->
       <form id="booking-form" action="/attendee/events/<%= event.id %>/book" method="post">
-        
         <!-- Your Info -->
         <div class="mb-8">
           <h2 class="text-xl font-semibold mb-4">
@@ -44,21 +44,21 @@
             <label for="name" class="block mb-2 font-medium">Full Name *</label>
             <input
               type="text" name="name" id="name"
-              value="<%= formData.name||'' %>"
+              value="<%= formData?.name || '' %>"
               class="w-full border rounded px-4 py-3"
               required
             />
             <label for="email" class="block mt-4 mb-2 font-medium">Email *</label>
             <input
               type="email" name="email" id="email"
-              value="<%= formData.email||'' %>"
+              value="<%= formData?.email || '' %>"
               class="w-full border rounded px-4 py-3"
               required
             />
           </div>
         </div>
 
-        <!-- Ticket Rows -->
+        <!-- Ticket Selection -->
         <div class="mb-8">
           <h2 class="text-xl font-semibold mb-4">
             <i class="fas fa-ticket-alt mr-2 text-purple-600"></i> Select Tickets
@@ -74,7 +74,7 @@
               <% tickets.forEach(ticket => { %>
                 <div class="ticket-row bg-gray-50 border rounded-lg p-6 flex justify-between items-center">
                   <div>
-                    <h3 class="font-semibold"><%= ticket.type.replace('-', ' ').replace(/\b\w/g, c=>c.toUpperCase()) %></h3>
+                    <h3 class="font-semibold"><%= ticket.type.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase()) %></h3>
                     <p class="text-sm text-gray-600">£<%= ticket.price.toFixed(2) %> each • <%= ticket.quantity %> left</p>
                   </div>
                   <div class="flex items-center space-x-6">
@@ -83,10 +83,10 @@
                       data-price="<%= ticket.price %>"
                       data-ticket-type="<%= ticket.type %>"
                       class="ticket-quantity border rounded px-3 py-2"
-                      <% if (ticket.quantity===0) { %>disabled<% } %>
+                      <% if (ticket.quantity === 0) { %>disabled<% } %>
                     >
-                      <% for (let i=0; i<=ticket.quantity; i++) { %>
-                        <option value="<%= i %>" <%= (formData.tickets?.[ticket.id]?.quantity==i)?'selected':'' %>>
+                      <% for (let i = 0; i <= ticket.quantity; i++) { %>
+                        <option value="<%= i %>" <%= (formData?.tickets?.[ticket.id]?.quantity == i) ? 'selected' : '' %>>
                           <%= i %>
                         </option>
                       <% } %>
@@ -120,9 +120,7 @@
             <i class="fas fa-arrow-left mr-2"></i>Back
           </a>
         </div>
-
       </form>
-    <% } %>
 
     </div>
   </div>
@@ -130,40 +128,45 @@
 
 <%- include('partials/footer') %>
 
+<!-- JavaScript -->
 <script>
-  document.querySelectorAll('.ticket-quantity').forEach(select => {
-    select.addEventListener('change', update);
-  });
-
   function update() {
-    let total=0, has=false;
+    let total = 0, has = false;
     const summary = document.getElementById('summary-items');
-    summary.innerHTML='';
-    document.querySelectorAll('.ticket-quantity').forEach(sel=>{
-      const q=+sel.value, p=+sel.dataset.price;
-      const sub=q*p;
+    summary.innerHTML = '';
+
+    document.querySelectorAll('.ticket-quantity').forEach(sel => {
+      const q = +sel.value, p = +sel.dataset.price;
+      const sub = q * p;
       sel.closest('.ticket-row').querySelector('.ticket-subtotal').textContent = `£${sub.toFixed(2)}`;
-      if(q){
-        has=true; total+=sub;
-        const div=document.createElement('div');
-        div.className='flex justify-between text-sm';
+
+      if (q) {
+        has = true;
+        total += sub;
+        const div = document.createElement('div');
+        div.className = 'flex justify-between text-sm';
         div.innerHTML = `
-          <span>${q}× ${sel.dataset.ticketType.replace('-', ' ').replace(/\b\w/g,c=>c.toUpperCase())}</span>
+          <span>${q}× ${sel.dataset.ticketType.replace('-', ' ').replace(/\b\w/g, c => c.toUpperCase())}</span>
           <span>£${sub.toFixed(2)}</span>`;
         summary.append(div);
       }
     });
+
     document.getElementById('total-amount').textContent = `£${total.toFixed(2)}`;
-    document.getElementById('order-summary').style.display = has?'block':'none';
+    document.getElementById('order-summary').style.display = has ? 'block' : 'none';
     document.getElementById('book-button').disabled = !has;
   }
 
-  // initialize
+  // Initialize
+  document.querySelectorAll('.ticket-quantity').forEach(select => {
+    select.addEventListener('change', update);
+  });
+
   update();
 
-  document.getElementById('booking-form').addEventListener('submit', ()=>{
+  document.getElementById('booking-form').addEventListener('submit', () => {
     const btn = document.getElementById('book-button');
     btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Processing…';
-    btn.disabled=true;
+    btn.disabled = true;
   });
 </script>

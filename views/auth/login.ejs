@@ -1,0 +1,36 @@
+<%- include('../partials/header', { title: 'Login' }) %>
+
+<div class="max-w-md mx-auto mt-12 p-8 bg-white rounded-lg shadow">
+  <h1 class="text-2xl font-bold text-center mb-6">🔐 Log In</h1>
+
+  <% if (flash && flash.error && flash.error.length) { %>
+    <div class="mb-4 p-3 bg-red-100 text-red-800 border border-red-300 rounded">
+      <%= flash.error[0] %>
+    </div>
+  <% } %>
+
+  <form method="POST" action="/auth/login" class="space-y-4">
+    <div>
+      <label for="email" class="block text-sm font-semibold">Email</label>
+      <input type="email" id="email" name="email" required
+             class="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+    </div>
+
+    <div>
+      <label for="password" class="block text-sm font-semibold">Password</label>
+      <input type="password" id="password" name="password" required
+             class="w-full border px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500" />
+    </div>
+
+    <button type="submit"
+            class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded">
+      Login
+    </button>
+
+    <p class="text-center text-sm mt-3">
+      Don't have an account? <a href="/auth/signup" class="text-blue-600 hover:underline">Sign up here</a>
+    </p>
+  </form>
+</div>
+
+<%- include('../partials/footer') %>

@@ -2,56 +2,61 @@
 const express = require('express');
 const router = express.Router();
 const db = global.db;
+const { ensureOrganiserOrAdmin } = require('../middleware/auth');
 
-// GET /organiser - Organiser Home Page
-router.get('/', (req, res, next) => {
-  db.get('SELECT name, description FROM site_settings', (err, settings) => {
+// ─── Organiser Home Page ─────────────────────────────
+router.get('/', ensureOrganiserOrAdmin, (req, res, next) => {
+  const organiserId = req.session.user?.id || req.session.admin?.id;
+  db.get('SELECT name, description FROM site_settings WHERE organiser_id=?', [organiserId], (err, settings) => {
     if (err) return next(err);
-
-    db.all('SELECT * FROM events WHERE state = "published"', (e2, published) => {
+    db.all('SELECT * FROM events WHERE organiser_id=? ORDER BY created_at DESC', [organiserId], (e2, events) => {
       if (e2) return next(e2);
-      db.all('SELECT * FROM events WHERE state = "draft"', (e3, drafts) => {
-        if (e3) return next(e3);
-        res.render('organiser_home', { settings, published, drafts });
-      });
+      const published = events.filter(e => e.state === 'published');
+      const drafts = events.filter(e => e.state === 'draft');
+      res.render('organiser-home', { settings, events, published, drafts, flash: req.flash() });
     });
   });
 });
 
-// GET /organiser/settings
-router.get('/settings', (req, res, next) => {
-  db.get('SELECT name, description FROM site_settings', (err, row) => {
+// ─── Organiser Settings Page ─────────────────────────
+router.get('/settings', ensureOrganiserOrAdmin, (req, res, next) => {
+  const organiserId = req.session.user?.id || req.session.admin?.id;
+  db.get('SELECT * FROM site_settings WHERE organiser_id=?', [organiserId], (err, settings) => {
     if (err) return next(err);
-    res.render('organiser_settings', { settings: row });
+    res.render('organiser-settings', { settings, errors: [] });
   });
 });
 
-// POST /organiser/settings
-router.post('/settings', (req, res, next) => {
+// ─── Save Settings ───────────────────────────────────
+router.post('/settings', ensureOrganiserOrAdmin, (req, res, next) => {
+  const organiserId = req.session.user?.id || req.session.admin?.id;
   const { name, description } = req.body;
-  if (!name || !description) {
-    req.flash('error', 'All fields are required');
-    return res.redirect('/organiser/settings');
+  const errors = [];
+
+  if (!name) errors.push('Site name is required');
+  if (!description) errors.push('Description is required');
+
+  if (errors.length) {
+    return res.render('organiser-settings', { settings: { name, description }, errors });
   }
 
-  db.run(
-    'UPDATE site_settings SET name = ?, description = ? WHERE id = 1',
-    [name, description],
+  db.run('UPDATE site_settings SET name=?, description=? WHERE organiser_id=?',
+    [name, description, organiserId],
     err => {
       if (err) return next(err);
-      req.flash('success', 'Settings updated.');
+      req.flash('success', 'Settings updated');
       res.redirect('/organiser');
     }
   );
 });
 
-// POST /organiser/events/create - Create a new draft event
-router.post('/events/create', (req, res, next) => {
-  const now = new Date().toISOString();
+// ─── Create New Event ────────────────────────────────
+router.post('/events/create', ensureOrganiserOrAdmin, (req, res, next) => {
+  const organiserId = req.session.user?.id || req.session.admin?.id;
   db.run(
-    `INSERT INTO events (title, description, event_date, created_at, last_modified, state)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    ['Untitled Event', '', now, now, now, 'draft'],
+    `INSERT INTO events (organiser_id, title, state, created_at, last_modified)
+     VALUES (?, 'Untitled Event', 'draft', datetime('now'), datetime('now'))`,
+    [organiserId],
     function (err) {
       if (err) return next(err);
       res.redirect(`/organiser/events/${this.lastID}/edit`);
@@ -59,71 +64,112 @@ router.post('/events/create', (req, res, next) => {
   );
 });
 
-// GET /organiser/events/:id/edit - Edit form
-router.get('/events/:id/edit', (req, res, next) => {
-  const id = req.params.id;
-  db.get('SELECT * FROM events WHERE id = ?', [id], (err, event) => {
+// ─── Edit Event Page ─────────────────────────────────
+router.get('/events/:id/edit', ensureOrganiserOrAdmin, (req, res, next) => {
+  const organiserId = req.session.user?.id || req.session.admin?.id;
+  const eventId = req.params.id;
+
+  db.get('SELECT * FROM events WHERE id=? AND organiser_id=?', [eventId, organiserId], (err, event) => {
     if (err) return next(err);
     if (!event) return res.status(404).render('404');
-    db.all('SELECT * FROM tickets WHERE event_id = ?', [id], (e2, tickets) => {
-      if (e2) return next(e2);
-      res.render('organiser_edit_event', { event, tickets });
+    db.all('SELECT * FROM tickets WHERE event_id=?', [eventId], (err2, tickets) => {
+      if (err2) return next(err2);
+      res.render('edit-event', { event, tickets, errors: [] });
     });
   });
 });
 
-// POST /organiser/events/:id/edit - Save event edits
-router.post('/events/:id/edit', (req, res, next) => {
-  const id = req.params.id;
-  const { title, description, event_date, full_price, full_qty, concession_price, concession_qty } = req.body;
-  const updatedAt = new Date().toISOString();
+// ─── Save Event Changes ──────────────────────────────
+router.post('/events/:id/edit', ensureOrganiserOrAdmin, (req, res, next) => {
+  const organiserId = req.session.user?.id || req.session.admin?.id;
+  const eventId = req.params.id;
+  const { title, description, event_date, tickets = {} } = req.body;
 
-  db.serialize(() => {
-    db.run(
-      `UPDATE events SET title = ?, description = ?, event_date = ?, last_modified = ? WHERE id = ?`,
-      [title, description, event_date, updatedAt, id]
-    );
+  const errors = [];
+  if (!title) errors.push('Title is required');
+  if (!event_date) errors.push('Event date is required');
 
-    db.run('DELETE FROM tickets WHERE event_id = ?', [id]);
+  if (errors.length) {
+    db.get('SELECT * FROM events WHERE id=? AND organiser_id=?', [eventId, organiserId], (err, event) => {
+      if (err) return next(err);
+      db.all('SELECT * FROM tickets WHERE event_id=?', [eventId], (err2, tickets) => {
+        if (err2) return next(err2);
+        return res.render('edit-event', { event, tickets, errors });
+      });
+    });
+  } else {
     db.run(
-      `INSERT INTO tickets (event_id, type, price, quantity) VALUES
-       (?, 'full-price', ?, ?),
-       (?, 'concession', ?, ?)`,
-      [id, full_price, full_qty, id, concession_price, concession_qty],
+      `UPDATE events SET title=?, description=?, event_date=?, last_modified=datetime('now') 
+       WHERE id=? AND organiser_id=?`,
+      [title, description, event_date, eventId, organiserId],
       err => {
         if (err) return next(err);
-        req.flash('success', 'Event updated.');
-        res.redirect('/organiser');
+
+        // Remove old tickets
+        db.run('DELETE FROM tickets WHERE event_id=?', [eventId], err2 => {
+          if (err2) return next(err2);
+
+          const ticketArray = Object.values(tickets);
+          const stmt = db.prepare('INSERT INTO tickets (event_id, type, price, quantity) VALUES (?, ?, ?, ?)');
+
+          for (const t of ticketArray) {
+            if (!t.type || !t.price || !t.quantity) continue;
+            stmt.run(eventId, t.type, t.price, t.quantity);
+          }
+
+          stmt.finalize(err3 => {
+            if (err3) return next(err3);
+            res.redirect(`/organiser/events/${eventId}/edit`);
+          });
+        });
       }
     );
-  });
+  }
 });
 
-// POST /organiser/events/:id/publish - Mark draft as published
-router.post('/events/:id/publish', (req, res, next) => {
-  const id = req.params.id;
-  const publishedAt = new Date().toISOString();
+// ─── Publish Event ───────────────────────────────────
+router.post('/events/:id/publish', ensureOrganiserOrAdmin, (req, res, next) => {
+  const organiserId = req.session.user?.id || req.session.admin?.id;
+  const eventId = req.params.id;
+
   db.run(
-    `UPDATE events SET state = 'published', published_at = ? WHERE id = ?`,
-    [publishedAt, id],
+    `UPDATE events SET state='published', published_at=datetime('now')
+     WHERE id=? AND organiser_id=?`,
+    [eventId, organiserId],
     err => {
       if (err) return next(err);
-      req.flash('success', 'Event published.');
-      res.redirect('/organiser');
+      res.json({ success: true });
     }
   );
 });
 
-// POST /organiser/events/:id/delete - Delete an event
-router.post('/events/:id/delete', (req, res, next) => {
-  const id = req.params.id;
-  db.run('DELETE FROM events WHERE id = ?', [id], err => {
+
+// ─── Delete Event ───────────────────────────────────
+router.delete('/events/:id', ensureOrganiserOrAdmin, (req, res, next) => {
+  const organiserId = req.session.user?.id || req.session.admin?.id;
+  const eventId = req.params.id;
+
+  db.run('DELETE FROM events WHERE id=? AND organiser_id=?', [eventId, organiserId], err => {
     if (err) return next(err);
-    db.run('DELETE FROM tickets WHERE event_id = ?', [id], err2 => {
-      if (err2) return next(err2);
-      req.flash('success', 'Event deleted.');
-      res.redirect('/organiser');
-    });
+    res.json({ success: true });
+  });
+});
+
+// ─── View Bookings ───────────────────────────────────
+router.get('/bookings', ensureOrganiserOrAdmin, (req, res, next) => {
+  const organiserId = req.session.user?.id || req.session.admin?.id;
+
+  const query = `
+    SELECT b.id, e.title as event_title, b.buyer_name, b.qty, b.total_amount, b.payment_status, b.booked_at
+    FROM bookings b
+    JOIN events e ON b.event_id = e.id
+    WHERE e.organiser_id = ?
+    ORDER BY b.booked_at DESC
+  `;
+
+  db.all(query, [organiserId], (err, bookings) => {
+    if (err) return next(err);
+    res.render('organiser-bookings', { bookings });
   });
 });
 

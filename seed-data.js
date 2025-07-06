@@ -2,153 +2,172 @@
 const sqlite3 = require('sqlite3').verbose();
 const bcrypt = require('bcrypt');
 
+// Open database
 const db = new sqlite3.Database('database.db');
 
 async function seedData() {
   console.log('🌱 Seeding demo data...');
 
   try {
-    // Create demo admin
     const adminPassword = await bcrypt.hash('admin123', 10);
+    const organiserPassword = await bcrypt.hash('demo123', 10);
+    const userPassword = await bcrypt.hash('user123', 10);
+
+    // Insert Admin
     db.run(
       `INSERT OR IGNORE INTO admins (id, username, email, password) 
        VALUES (1, 'admin', 'admin@eventmanager.com', ?)`,
       [adminPassword]
     );
 
-    // Create demo organisers
-    const organiserPassword = await bcrypt.hash('demo123', 10);
-    
-    const organisers = [
-      { username: 'musicfest', email: 'music@demo.com', organisation: 'Music Festival Productions' },
-      { username: 'techconf', email: 'tech@demo.com', organisation: 'Tech Conference Inc' },
-      { username: 'artgallery', email: 'art@demo.com', organisation: 'City Art Gallery' }
+    // Insert Users
+    const users = [
+      { name: 'Alice Example', email: 'alice@example.com' },
+      { name: 'Bob Sample', email: 'bob@example.com' }
     ];
-
-    for (const org of organisers) {
-      db.run(
-        `INSERT OR IGNORE INTO organisers (username, email, password, organisation) 
-         VALUES (?, ?, ?, ?)`,
-        [org.username, org.email, organiserPassword, org.organisation],
-        function(err) {
-          if (!err && this.lastID) {
-            // Create settings for each organiser
-            db.run(
-              `INSERT OR IGNORE INTO organiser_settings (organiser_id, site_name, site_desc) 
-               VALUES (?, ?, ?)`,
-              [this.lastID, org.organisation + ' Events', 'Experience amazing events with us!']
-            );
-
-            // Create some demo events
-            createDemoEvents(this.lastID, org.organisation);
-          }
-        }
-      );
+    for (const user of users) {
+      await insertUser(user, userPassword);
     }
 
-    console.log('✅ Demo data seeded successfully!');
-    console.log('\n📝 Login credentials:');
-    console.log('Admin: username=admin, password=admin123');
-    console.log('Organisers: username=musicfest/techconf/artgallery, password=demo123');
-    
-  } catch (error) {
-    console.error('❌ Error seeding data:', error);
+    // Insert Organisers + Site Settings + Events + Tickets
+    const organisers = [
+      { username: 'musicfest', organisation: 'Music Festival Productions' },
+      { username: 'techconf', organisation: 'Tech Conference Inc' },
+      { username: 'artgallery', organisation: 'City Art Gallery' }
+    ];
+    for (const org of organisers) {
+      await insertOrganiser(org, organiserPassword);
+    }
+
+    // Finish
+    setTimeout(() => {
+      db.close();
+      console.log('✅ Done seeding!');
+      console.log('\n📝 Log in with:\n - Organiser: musicfest / demo123\n - Admin: admin / admin123\n - User: alice@example.com / user123\n');
+    }, 2000);
+
+  } catch (err) {
+    console.error('❌ Error during seed:', err);
   }
 }
 
-function createDemoEvents(organiserId, orgName) {
-  const events = {
+function insertUser(user, hashedPassword) {
+  return new Promise(resolve => {
+    db.run(
+      `INSERT INTO users (name, email, password_hash) VALUES (?, ?, ?)`,
+      [user.name, user.email, hashedPassword],
+      err => {
+        if (err) console.error(`⚠️ Could not insert user ${user.email}:`, err.message);
+        resolve();
+      }
+    );
+  });
+}
+
+function insertOrganiser(org, hashedPassword) {
+  return new Promise(resolve => {
+    db.run(
+      `INSERT INTO organisers (username, password_hash, organisation)
+       VALUES (?, ?, ?)`,
+      [org.username, hashedPassword, org.organisation],
+      function (err) {
+        if (err) {
+          console.error(`❌ Failed to insert organiser ${org.username}:`, err.message);
+          return resolve();
+        }
+
+        const organiserId = this.lastID;
+
+        db.run(
+          `INSERT INTO site_settings (organiser_id, name, description) VALUES (?, ?, ?)`,
+          [organiserId, org.organisation + ' Events', 'Curated experiences for everyone']
+        );
+
+        insertDemoEvents(organiserId, org.organisation);
+        resolve();
+      }
+    );
+  });
+}
+
+function insertDemoEvents(organiserId, orgName) {
+  const eventsMap = {
     'Music Festival Productions': [
       {
         title: 'Summer Music Festival 2025',
-        description: 'Three days of incredible live music featuring top artists from around the world.',
+        description: '3 days of live music.',
         event_date: '2025-07-15',
         tickets: [
           { type: 'general', price: 89.99, quantity: 500 },
-          { type: 'vip', price: 199.99, quantity: 100 },
-          { type: 'weekend-pass', price: 249.99, quantity: 200 }
-        ]
-      },
-      {
-        title: 'Jazz in the Park',
-        description: 'An evening of smooth jazz under the stars.',
-        event_date: '2025-06-20',
-        tickets: [
-          { type: 'standard', price: 45.00, quantity: 300 },
-          { type: 'premium', price: 75.00, quantity: 50 }
+          { type: 'vip', price: 199.99, quantity: 100 }
         ]
       }
     ],
     'Tech Conference Inc': [
       {
-        title: 'AI & Future Tech Summit 2025',
-        description: 'Explore the latest in artificial intelligence and emerging technologies.',
+        title: 'AI Summit 2025',
+        description: 'Latest in AI + tech.',
         event_date: '2025-09-10',
         tickets: [
           { type: 'standard', price: 299.00, quantity: 400 },
-          { type: 'professional', price: 499.00, quantity: 200 },
           { type: 'student', price: 99.00, quantity: 100 }
-        ]
-      },
-      {
-        title: 'Blockchain Workshop',
-        description: 'Hands-on workshop on blockchain development and applications.',
-        event_date: '2025-05-25',
-        tickets: [
-          { type: 'general', price: 150.00, quantity: 50 }
         ]
       }
     ],
     'City Art Gallery': [
       {
-        title: 'Modern Art Exhibition Opening',
-        description: 'Exclusive opening night for our new modern art collection.',
+        title: 'Modern Art Opening',
+        description: 'A preview of upcoming local artists.',
         event_date: '2025-04-10',
         tickets: [
-          { type: 'member', price: 0, quantity: 100 },
-          { type: 'general', price: 25.00, quantity: 200 },
-          { type: 'patron', price: 100.00, quantity: 50 }
-        ]
-      },
-      {
-        title: 'Art & Wine Evening',
-        description: 'Enjoy fine art with carefully selected wines.',
-        event_date: '2025-05-15',
-        tickets: [
-          { type: 'standard', price: 65.00, quantity: 80 },
-          { type: 'couple', price: 120.00, quantity: 40 }
+          { type: 'full-price', price: 0, quantity: 0 },
+          { type: 'concession', price: 0, quantity: 0 }
         ]
       }
     ]
   };
 
-  const orgEvents = events[orgName] || [];
-  
-  orgEvents.forEach(event => {
+  const events = eventsMap[orgName] || [];
+
+  events.forEach(ev => {
     db.run(
       `INSERT INTO events (organiser_id, title, description, event_date, state, published_at) 
        VALUES (?, ?, ?, ?, 'published', datetime('now'))`,
-      [organiserId, event.title, event.description, event.event_date],
-      function(err) {
-        if (!err && this.lastID) {
-          // Create tickets for this event
-          event.tickets.forEach(ticket => {
-            db.run(
-              `INSERT INTO tickets (event_id, type, price, quantity) 
-               VALUES (?, ?, ?, ?)`,
-              [this.lastID, ticket.type, ticket.price, ticket.quantity]
-            );
-          });
-        }
+      [organiserId, ev.title, ev.description, ev.event_date],
+      function (err) {
+        if (err) return console.error('❌ Failed to insert event:', err.message);
+
+        const eventId = this.lastID;
+
+        ev.tickets.forEach(ticket => {
+          db.run(
+            `INSERT INTO tickets (event_id, type, price, quantity) VALUES (?, ?, ?, ?)`,
+            [eventId, ticket.type, ticket.price, ticket.quantity],
+            function (ticketErr) {
+              if (ticketErr) return console.error('❌ Failed to insert ticket:', ticketErr.message);
+
+              const ticketId = this.lastID;
+
+              // Add booking for alice@example.com
+              db.get(`SELECT id, name, email FROM users WHERE email = 'alice@example.com'`, (e3, user) => {
+                if (user) {
+                  db.run(
+                    `INSERT INTO bookings (event_id, ticket_id, user_id, qty, buyer_name, buyer_email, payment_status)
+                     VALUES (?, ?, ?, ?, ?, ?, 'completed')`,
+                    [eventId, ticketId, user.id, 2, user.name, user.email],
+                    err => {
+                      if (err) console.error('❌ Booking insert failed:', err.message);
+                    }
+                  );
+                }
+              });
+            }
+          );
+        });
       }
     );
   });
 }
 
 // Run seeding
-seedData().then(() => {
-  setTimeout(() => {
-    db.close();
-    process.exit(0);
-  }, 2000);
-});
+seedData();
