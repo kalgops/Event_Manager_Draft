@@ -78,9 +78,7 @@
 </script>
 
 <script>
-/* ----------------------------------------------------------
-   Ticket-row builder, add/remove, auto-save to localStorage
-   ---------------------------------------------------------- */
+/* Ticket-row builder, add/remove, auto-save to localStorage */
 (function () {
   const form        = document.getElementById('edit-form');
   const ticketsWrap = document.getElementById('tickets');
@@ -88,7 +86,6 @@
   const storeKey    = 'ticketDraft-' + form.dataset.event;
   let   newIdx      = 0;
 
-  /* ---------- utilities ---------- */
   function el (html) {
     const div = document.createElement('div');
     div.innerHTML = html.trim();
@@ -135,14 +132,13 @@
     ticketsWrap.appendChild(el(rowHTML(idx, data || {})));
   }
 
-  /* ---------- restore cached draft or server tickets ---------- */
   (function initRows () {
     const draft = localStorage.getItem(storeKey);
     if (draft) {
       try {
         JSON.parse(draft).forEach(addRow);
-        return; // done
-      } catch (e) { /* fall back to server tickets */ }
+        return;
+      } catch (e) { }
     }
 
     const serverTickets = JSON.parse(
@@ -151,7 +147,6 @@
     serverTickets.forEach(addRow);
   })();
 
-  /* ---------- handlers ---------- */
   addBtn.addEventListener('click', function () {
     addRow();
     saveDraft();
@@ -170,7 +165,6 @@
     localStorage.removeItem(storeKey);
   });
 
-  /* ---------- persistence ---------- */
   function saveDraft () {
     const rows = Array.from(ticketsWrap.querySelectorAll('.ticket-row'))
       .map(function (row) {
@@ -189,9 +183,6 @@
   }
 })();
 
-/* ----------------------------------------------------------
-   optional “Save + Publish” helper
-   ---------------------------------------------------------- */
 function publishEvent (id) {
   const fd = new FormData(document.getElementById('edit-form'));
   axios.post(`/organiser/events/${id}/edit`, fd)

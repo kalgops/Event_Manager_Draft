@@ -1,93 +1,16 @@
-<!-- views/partials/header.ejs -->
 <!DOCTYPE html>
-<html lang="en" data-theme="<%= theme %>">
+<html lang="en"
+  class="<%= (typeof theme !== 'undefined' && theme === 'dark') ? 'dark' : '' %>">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title %> | Event Manager Pro</title>
-
-  <!-- Stylesheets -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="/css/main.css">
-  
-  <!-- Scripts -->
-  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title><%= title %></title>
+  <link href="/css/main.css" rel="stylesheet" />
 </head>
-<body>
-  <!-- Whirlwind Loader -->
-  <div class="whirlwind-loader">
-    <div class="whirlwind"></div>
-  </div>
-
-  <!-- Navigation -->
-  <nav class="sticky top-0 z-50 backdrop-blur-md bg-opacity-90">
-    <div class="container mx-auto px-4">
-      <div class="flex items-center justify-between h-16">
-        <div class="flex items-center space-x-8">
-          <a href="/" class="font-bold text-xl text-blue-600">
-            <i class="fas fa-calendar-check mr-2"></i>Event Manager Pro
-          </a>
-          
-          <div class="hidden md:flex space-x-6">
-            <% if (user && user.type === 'organiser') { %>
-              <a href="/organiser" class="hover:text-blue-600 transition">
-                <i class="fas fa-home mr-1"></i>Dashboard
-              </a>
-              <a href="/organiser/events" class="hover:text-blue-600 transition">
-                <i class="fas fa-calendar mr-1"></i>Events
-              </a>
-              <a href="/organiser/bookings" class="hover:text-blue-600 transition">
-                <i class="fas fa-ticket-alt mr-1"></i>Bookings
-              </a>
-              <a href="/organiser/analytics" class="hover:text-blue-600 transition">
-                <i class="fas fa-chart-line mr-1"></i>Analytics
-              </a>
-            <% } else if (user && user.type === 'admin') { %>
-              <a href="/admin" class="hover:text-blue-600 transition">
-                <i class="fas fa-tachometer-alt mr-1"></i>Dashboard
-              </a>
-              <a href="/admin/organisers" class="hover:text-blue-600 transition">
-                <i class="fas fa-users mr-1"></i>Organisers
-              </a>
-              <a href="/admin/events" class="hover:text-blue-600 transition">
-                <i class="fas fa-calendar mr-1"></i>All Events
-              </a>
-              <a href="/admin/bookings" class="hover:text-blue-600 transition">
-                <i class="fas fa-list mr-1"></i>All Bookings
-              </a>
-              <a href="/admin/analytics" class="hover:text-blue-600 transition">
-                <i class="fas fa-chart-bar mr-1"></i>Platform Analytics
-              </a>
-            <% } else { %>
-              <a href="/attendee" class="hover:text-blue-600 transition">
-                <i class="fas fa-calendar mr-1"></i>Browse Events
-              </a>
-            <% } %>
-          </div>
-        </div>
-
-        <div class="flex items-center space-x-4">
-          <% if (user) { %>
-            <div class="flex items-center space-x-4">
-              <span class="text-sm text-gray-600">
-                <i class="fas fa-user-circle mr-1"></i>
-                <%= user.username %>
-                <span class="text-xs text-gray-500">(<%= user.type %>)</span>
-              </span>
-              <a href="/auth/logout" class="btn btn-sm btn-secondary">
-                <i class="fas fa-sign-out-alt mr-1"></i>Logout
-              </a>
-            </div>
-          <% } else { %>
-            <div class="flex space-x-2">
-              <a href="/auth/organiser/login" class="btn btn-sm btn-primary">
-                <i class="fas fa-user-circle mr-1"></i>Organiser Login
-              </a>
-              <a href="/auth/attendee/login" class="btn btn-sm btn-secondary">
-                <i class="fas fa-user-circle mr-1"></i>Attendee Login
-              </a>
-            </div>
+<body class="antialiased bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+  <header class="p-4 shadow-md bg-white dark:bg-gray-800">
+    <div class="container mx-auto flex items-center">
+      <a href="/" class="text-xl font-bold">Event Manager</a>
+      <!-- your nav… -->
+    </div>
+  </header>

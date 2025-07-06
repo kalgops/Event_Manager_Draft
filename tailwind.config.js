@@ -1,11 +1,9 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
-    './views/**/*.ejs',        // all EJS templates
-    './public/js/**/*.js',     // any Alpine / custom JS that contains class names
+    './views/**/*.ejs',
+    './public/js/**/*.js'
   ],
-  theme: {
-    extend: {},
-  },
+  theme: { extend: {} },
   plugins: [],
 };
