@@ -1,271 +1,354 @@
 // routes/organiser.js
-// ─────────────────────────────────────────────────────────────────────────
-// Per-organiser dashboard, full CRUD, bookings table & metrics dashboard
-// ========================================================================
+// Enhanced organiser routes with all required functionality
 
 const express = require('express');
-const db      = require('../db');           // shared SQLite connection
-const router  = express.Router();
+const router = express.Router();
+const db = global.db;
+const { body, validationResult } = require('express-validator');
 
-// ─── Helper fns ───────────────────────────────────────────────────────────
-function loadSettings (orgId, cb) {
+/**
+ * Load site settings (single row id=1)
+ * @param {Function} cb - Callback function (err, settings)
+ */
+function loadSettings(cb) {
   db.get(
-    'SELECT name, description FROM site_settings WHERE organiser_id = ?',
-    [orgId],
+    'SELECT name, description FROM site_settings WHERE id = 1',
     cb
   );
 }
 
-function loadEventsByState (orgId, state, cb) {
+/**
+ * Load events by state with ticket information
+ * @param {string} state - 'draft' or 'published'
+ * @param {Function} cb - Callback function (err, events[])
+ */
+function loadEventsByState(state, cb) {
   db.all(
     `SELECT e.*,
-            COALESCE(SUM(t.quantity),0) AS total_qty
-       FROM events e
-  LEFT JOIN tickets t ON t.event_id = e.id
-      WHERE e.organiser_id = ? AND e.state = ?
-      GROUP BY e.id
-      ORDER BY
-        CASE ? WHEN 'published' THEN datetime(e.event_date)
-               ELSE datetime(e.created_at) END ASC`,
-    [orgId, state, state],
+            COALESCE(SUM(t.quantity), 0) AS total_qty,
+            COUNT(DISTINCT t.type) AS ticket_types
+     FROM events e
+     LEFT JOIN tickets t ON t.event_id = e.id
+     WHERE e.state = ?
+     GROUP BY e.id
+     ORDER BY 
+       CASE ? 
+         WHEN 'published' THEN datetime(e.event_date)
+         ELSE datetime(e.created_at) 
+       END ASC`,
+    [state, state],
     cb
   );
 }
 
-// ─── Home dashboard (drafts + published) ─────────────────────────────────
+/**
+ * GET /organiser - Organiser dashboard/home page
+ * Displays published and draft events with management options
+ */
 router.get('/', (req, res, next) => {
-  const orgId = req.session.organiserId;
+  loadSettings((err1, settings) => {
+    if (err1) return next(err1);
 
-  let drafts, published, left = 2;
-  const maybeRender = () => {
-    if (--left === 0) {
-      res.render('organiser-home', { settings: res.locals.settings, drafts, published });
+    let published, drafts, pending = 2;
+    
+    function checkComplete() {
+      if (--pending === 0) {
+        res.render('organiser-home', { settings, published, drafts });
+      }
     }
-  };
 
-  // preload site settings for navbar
-  loadSettings(orgId, (e, s) => {
-    if (e) return next(e);
-    res.locals.settings = s;
-    maybeRender();
-  });
+    loadEventsByState('published', (err2, rows1) => {
+      if (err2) return next(err2);
+      published = rows1;
+      checkComplete();
+    });
 
-  loadEventsByState(orgId, 'published', (e1, p) => {
-    if (e1) return next(e1);
-    published = p;
-    maybeRender();
-  });
-
-  loadEventsByState(orgId, 'draft', (e2, d) => {
-    if (e2) return next(e2);
-    drafts = d;
-    maybeRender();
+    loadEventsByState('draft', (err3, rows2) => {
+      if (err3) return next(err3);
+      drafts = rows2;
+      checkComplete();
+    });
   });
 });
 
-// ─── Site settings (name + description) ──────────────────────────────────
-router
-  .route('/settings')
-  .get((req, res, next) => {
-    loadSettings(req.session.organiserId, (err, settings) =>
-      err ? next(err) : res.render('site-settings', { settings, errors: [] })
-    );
-  })
-  .post((req, res, next) => {
-    const { name, description } = req.body;
-    const errors = [];
-    if (!name)        errors.push('Name required');
-    if (!description) errors.push('Description required');
-
-    if (errors.length) {
-      return res.render('site-settings', { settings: { name, description }, errors });
-    }
-
-    db.run(
-      `UPDATE site_settings
-          SET name = ?, description = ?
-        WHERE organiser_id = ?`,
-      [name.trim(), description.trim(), req.session.organiserId],
-      err => (err ? next(err) : res.redirect('/organiser'))
-    );
+/**
+ * GET /organiser/settings - Site settings page
+ * Displays form for editing site name and description
+ */
+router.get('/settings', (req, res, next) => {
+  loadSettings((err, settings) => {
+    if (err) return next(err);
+    res.render('site-settings', { settings, errors: [] });
   });
+});
 
-// ─── Create a brand-new DRAFT event ──────────────────────────────────────
+/**
+ * POST /organiser/settings - Update site settings
+ * Updates site name and description with validation
+ */
+router.post('/settings', [
+  body('name').trim().notEmpty().withMessage('Name is required'),
+  body('description').trim().notEmpty().withMessage('Description is required')
+], (req, res, next) => {
+  const errors = validationResult(req);
+  const { name, description } = req.body;
+
+  if (!errors.isEmpty()) {
+    return res.render('site-settings', {
+      settings: { name, description },
+      errors: errors.array().map(e => e.msg)
+    });
+  }
+
+  db.run(
+    'UPDATE site_settings SET name = ?, description = ? WHERE id = 1',
+    [name.trim(), description.trim()],
+    (err) => {
+      if (err) return next(err);
+      res.redirect('/organiser');
+    }
+  );
+});
+
+/**
+ * POST /organiser/events/new - Create new draft event
+ * Creates a new event in draft state and returns JSON with event ID
+ */
 router.post('/events/new', (req, res, next) => {
   db.run(
-    `INSERT INTO events (state, organiser_id)
-         VALUES ('draft', ?)`,
-    [req.session.organiserId],
-    function (err) {
+    "INSERT INTO events (state) VALUES ('draft')",
+    function(err) {
       if (err) return next(err);
       res.json({ success: true, id: this.lastID });
     }
   );
 });
 
-// ─── Edit form (GET) and save edits (POST) ───────────────────────────────
-router
-  .route('/events/:id/edit')
-  .get((req, res, next) => {
-    const { organiserId } = req.session;
-    const eid = req.params.id;
+/**
+ * GET /organiser/events/:id/edit - Event edit page
+ * Displays form for editing event details and ticket information
+ */
+router.get('/events/:id/edit', (req, res, next) => {
+  const eventId = req.params.id;
+  
+  db.get(
+    'SELECT * FROM events WHERE id = ?',
+    [eventId],
+    (err, event) => {
+      if (err) return next(err);
+      if (!event) return res.status(404).render('404');
 
-    db.get(
-      'SELECT * FROM events WHERE id = ? AND organiser_id = ?',
-      [eid, organiserId],
-      (err, event) => {
-        if (err) return next(err);
-        if (!event) return res.status(404).render('404');
-        db.all(
-          'SELECT id,type,price,quantity FROM tickets WHERE event_id = ?',
-          [eid],
-          (e2, tickets) =>
-            e2 ? next(e2) : res.render('edit-event', { event, tickets, errors: [] })
-        );
-      }
-    );
-  })
-  .post((req, res, next) => {
-    const { organiserId }       = req.session;
-    const eid                   = req.params.id;
-    const { title, description, event_date } = req.body;
-    const errors                = [];
-
-    if (!title?.trim())       errors.push('Title required');
-    if (!description?.trim()) errors.push('Description required');
-    if (!event_date)          errors.push('Date required');
-
-    // parse tickets[][]
-    const TD = {};
-    for (const [k, v] of Object.entries(req.body)) {
-      const m = k.match(/^tickets\[(.+?)\]\[(.+?)\]$/);
-      if (!m) continue;
-      const [, key, field] = m;
-      (TD[key] ||= {})[field] = v;
-    }
-
-    if (errors.length) {
-      const tickets = Object.entries(TD).map(([key, t]) => ({
-        id:       t.id || key,
-        type:     t.type     || '',
-        price:    +t.price    || 0,
-        quantity: +t.quantity || 0
-      }));
-      return res.render('edit-event', {
-        event: { id: eid, title, description, event_date },
-        tickets,
-        errors
-      });
-    }
-
-    db.serialize(() => {
-      db.run(
-        `UPDATE events
-            SET title         = ?,
-                description   = ?,
-                event_date    = ?,
-                last_modified = datetime('now')
-          WHERE id = ? AND organiser_id = ?`,
-        [title.trim(), description.trim(), event_date, eid, organiserId]
-      );
-
-      for (const t of Object.values(TD)) {
-        const { id, type, price, quantity } = {
-          id: t.id, type: t.type, price: +t.price, quantity: +t.quantity
-        };
-        if (id && /^\d+$/.test(id)) {
-          db.run(
-            `UPDATE tickets
-                SET type = ?, price = ?, quantity = ?
-              WHERE id = ? AND event_id = ?`,
-            [type, price, quantity, id, eid]
-          );
-        } else {
-          db.run(
-            `INSERT INTO tickets (event_id, type, price, quantity)
-                 VALUES (?,?,?,?)`,
-            [eid, type, price, quantity]
-          );
+      db.all(
+        'SELECT id, type, price, quantity FROM tickets WHERE event_id = ? ORDER BY type',
+        [eventId],
+        (err2, tickets) => {
+          if (err2) return next(err2);
+          res.render('edit-event', { event, tickets, errors: [] });
         }
-      }
-    });
+      );
+    }
+  );
+});
 
-    res.redirect('/organiser');
+/**
+ * POST /organiser/events/:id/edit - Update event
+ * Updates event details and ticket information with validation
+ */
+router.post('/events/:id/edit', [
+  body('title').trim().notEmpty().withMessage('Event title is required'),
+  body('description').trim().notEmpty().withMessage('Event description is required'),
+  body('event_date').notEmpty().withMessage('Event date is required'),
+  body('tickets.*.quantity').isInt({ min: 0 }).withMessage('Ticket quantity must be 0 or greater'),
+  body('tickets.*.price').isFloat({ min: 0 }).withMessage('Ticket price must be 0 or greater')
+], (req, res, next) => {
+  const eventId = req.params.id;
+  const errors = validationResult(req);
+  const { title, description, event_date } = req.body;
+
+  // Process ticket data
+  const ticketData = {};
+  Object.entries(req.body).forEach(([key, value]) => {
+    const match = key.match(/tickets\[(.+?)\]\[(.+?)\]/);
+    if (match) {
+      const [, type, field] = match;
+      if (!ticketData[type]) ticketData[type] = {};
+      ticketData[type][field] = value;
+    }
   });
 
-// ─── Publish / Delete endpoints ──────────────────────────────────────────
-router.post('/events/:id/publish', (req, res, next) => {
+  // Additional validation
+  const validationErrors = [];
+  if (!errors.isEmpty()) {
+    validationErrors.push(...errors.array().map(e => e.msg));
+  }
+
+  Object.entries(ticketData).forEach(([type, data]) => {
+    if (data.quantity < 0) validationErrors.push(`${type} quantity cannot be negative`);
+    if (data.price < 0) validationErrors.push(`${type} price cannot be negative`);
+  });
+
+  if (validationErrors.length > 0) {
+    // Reload event and tickets for form repopulation
+    return db.get('SELECT * FROM events WHERE id = ?', [eventId], (err, event) => {
+      if (err) return next(err);
+      const mockTickets = Object.entries(ticketData).map(([type, data]) => ({
+        type, quantity: data.quantity || 0, price: data.price || 0
+      }));
+      res.render('edit-event', {
+        event: { ...event, title, description, event_date },
+        tickets: mockTickets,
+        errors: validationErrors
+      });
+    });
+  }
+
+  // Update event and tickets in transaction
+  db.serialize(() => {
+    db.run('BEGIN TRANSACTION');
+
+    // Update event details
+    db.run(
+      `UPDATE events 
+       SET title = ?, description = ?, event_date = ?, last_modified = datetime('now')
+       WHERE id = ?`,
+      [title.trim(), description.trim(), event_date, eventId],
+      (err) => {
+        if (err) {
+          db.run('ROLLBACK');
+          return next(err);
+        }
+      }
+    );
+
+    // Update ticket information
+    Object.entries(ticketData).forEach(([type, data]) => {
+      db.get(
+        'SELECT id FROM tickets WHERE event_id = ? AND type = ?',
+        [eventId, type],
+        (err, existingTicket) => {
+          if (err) {
+            db.run('ROLLBACK');
+            return next(err);
+          }
+
+          if (existingTicket) {
+            // Update existing ticket
+            db.run(
+              'UPDATE tickets SET quantity = ?, price = ? WHERE id = ?',
+              [data.quantity, data.price, existingTicket.id]
+            );
+          } else {
+            // Insert new ticket type
+            db.run(
+              'INSERT INTO tickets (event_id, type, quantity, price) VALUES (?, ?, ?, ?)',
+              [eventId, type, data.quantity, data.price]
+            );
+          }
+        }
+      );
+    });
+
+    db.run('COMMIT', (err) => {
+      if (err) return next(err);
+      res.redirect('/organiser');
+    });
+  });
+});
+
+/**
+ * POST /organiser/events/:id/publish - Publish event
+ * Changes event state from draft to published and sets publication timestamp
+ */
+router.post('/organiser/events/:id/publish', (req, res, next) => {
   db.run(
-    `UPDATE events
-        SET state        = 'published',
-            published_at = datetime('now')
-      WHERE id = ?`,
+    `UPDATE events 
+     SET state = 'published', published_at = datetime('now')
+     WHERE id = ?`,
     [req.params.id],
-    err => (err ? next(err) : res.json({ success: true }))
+    (err) => {
+      if (err) return next(err);
+      res.json({ success: true });
+    }
   );
 });
 
-router.delete('/events/:id', (req, res, next) => {
+/**
+ * DELETE /organiser/events/:id - Delete event
+ * Removes event and all associated tickets and bookings
+ */
+router.delete('/organiser/events/:id', (req, res, next) => {
   db.run(
-    `DELETE FROM events
-      WHERE id = ? AND organiser_id = ?`,
-    [req.params.id, req.session.organiserId],
-    err => (err ? next(err) : res.json({ success: true }))
+    'DELETE FROM events WHERE id = ?',
+    [req.params.id],
+    (err) => {
+      if (err) return next(err);
+      res.json({ success: true });
+    }
   );
 });
 
-// ─── Bookings table & dashboard pie-charts ───────────────────────────────
+/**
+ * GET /organiser/bookings - View all bookings
+ * Displays comprehensive list of all bookings across all events
+ */
 router.get('/bookings', (req, res, next) => {
   db.all(
     `SELECT b.id, b.buyer_name, b.qty, b.booked_at,
-            e.title  AS event_title,
-            t.type   AS ticket_type
-       FROM bookings b
-  JOIN tickets t ON t.id = b.ticket_id
-  JOIN events  e ON e.id = b.event_id
-      WHERE e.organiser_id = ?
-   ORDER BY datetime(b.booked_at) DESC`,
-    [req.session.organiserId],
-    (err, bookings) => (err ? next(err) : res.render('all-bookings', { bookings }))
+            e.title AS event_title,
+            e.event_date,
+            t.type AS ticket_type,
+            t.price AS ticket_price,
+            (b.qty * t.price) AS total_cost
+     FROM bookings b
+     JOIN events e ON e.id = b.event_id
+     JOIN tickets t ON t.id = b.ticket_id
+     ORDER BY datetime(b.booked_at) DESC`,
+    (err, bookings) => {
+      if (err) return next(err);
+      res.render('all-bookings', { bookings });
+    }
   );
 });
 
-router.get('/dashboard', (req, res, next) => {
-  const orgId = req.session.organiserId;
+/**
+ * GET /organiser/analytics - Analytics dashboard
+ * Provides booking statistics and revenue metrics
+ */
+router.get('/analytics', (req, res, next) => {
+  // Get booking data for charts
   db.all(
-    `SELECT t.type AS label, SUM(b.qty) AS total
-       FROM bookings b
-  JOIN tickets t ON t.id = b.ticket_id
-  JOIN events  e ON e.id = b.event_id
-      WHERE e.organiser_id = ?
-      GROUP BY t.type`,
-    [orgId],
-    (e1, rows1) => {
-      if (e1) return next(e1);
-      const progLabels = rows1.map(r => r.label);
-      const progData   = rows1.map(r => r.total);
+    `SELECT t.type AS label, 
+            SUM(b.qty) AS tickets_sold,
+            SUM(b.qty * t.price) AS revenue
+     FROM bookings b
+     JOIN tickets t ON t.id = b.ticket_id
+     GROUP BY t.type`,
+    (err, ticketStats) => {
+      if (err) return next(err);
 
+      // Get event performance data
       db.all(
-        `SELECT state AS label, COUNT(*) AS total
-           FROM events
-          WHERE organiser_id = ?
-          GROUP BY state`,
-        [orgId],
-        (e2, rows2) => {
-          if (e2) return next(e2);
-          res.render('organiser-dashboard', {
-            progLabels,
-            progData,
-            evtLabels: rows2.map(r => r.label),
-            evtData:   rows2.map(r => r.total)
+        `SELECT e.title AS event_name,
+                COUNT(b.id) AS total_bookings,
+                SUM(b.qty) AS tickets_sold,
+                SUM(b.qty * t.price) AS revenue
+         FROM events e
+         LEFT JOIN bookings b ON b.event_id = e.id
+         LEFT JOIN tickets t ON t.id = b.ticket_id
+         WHERE e.state = 'published'
+         GROUP BY e.id, e.title
+         ORDER BY revenue DESC`,
+        (err2, eventStats) => {
+          if (err2) return next(err2);
+
+          res.render('organiser-analytics', {
+            ticketStats: ticketStats || [],
+            eventStats: eventStats || []
           });
         }
       );
     }
   );
 });
-
-// ─── Fallback 404 ─────────────────────────────────────────────────────────
-router.use((req, res) => res.status(404).render('404'));
 
 module.exports = router;

@@ -36,3 +36,10 @@ nav a {
   transform: none !important;
   transition: none !important;
 }
+
+.btn-primary {
+  @apply inline-flex items-center justify-center px-8 py-4 rounded-xl text-white font-semibold shadow-lg transition hover:-translate-y-1;
+}
+.btn-secondary {
+  @apply inline-flex items-center justify-center px-8 py-4 rounded-xl text-gray-700 font-semibold shadow-lg transition hover:-translate-y-1;
+}

@@ -1,116 +1,209 @@
-<%- include('partials/header', { title: `Edit Event #${event.id}` }) %>
+<%- include('partials/header', { title: event.id ? `Edit Event #${event.id}` : 'Create Event' }) %>
 
-<div class="max-w-3xl mx-auto py-6">
-  <h1 class="text-2xl font-bold mb-4">Edit Event #<%= event.id %></h1>
+<div class="max-w-3xl mx-auto py-8">
+  <h1 class="text-2xl font-bold mb-4">
+    <%= event.id ? `Edit Event #${event.id}` : 'Create New Event' %>
+  </h1>
 
   <% if (errors.length) { %>
-    <ul class="mb-4 text-red-600 list-disc list-inside">
-      <% errors.forEach(e=>{ %><li><%= e %></li><% }) %>
+    <ul class="mb-6 list-disc list-inside text-red-600">
+      <% errors.forEach(function (e) { %><li><%= e %></li><% }) %>
     </ul>
   <% } %>
 
-  <form action="/organiser/events/<%= event.id %>/edit" method="post">
-    <div class="mb-4">
-      <label class="block font-medium mb-1" for="title">Title</label>
-      <input id="title" name="title" value="<%= event.title %>"
-             class="w-full border rounded px-3 py-2" required />
+  <!-- we keep the action identical to your route -->
+  <form id="edit-form" data-event="<%= event.id %>"
+        action="/organiser/events/<%= event.id %>/edit" method="post">
+
+    <!-- ─────────── Event details ─────────── -->
+    <div class="mb-6 space-y-4 border border-gray-200 p-6 rounded-lg">
+      <div>
+        <label class="block font-medium mb-1">Title *</label>
+        <input name="title" class="w-full border rounded px-3 py-2"
+               value="<%= event.title || '' %>" required>
+      </div>
+
+      <div>
+        <label class="block font-medium mb-1">Date *</label>
+        <input name="event_date" type="date"
+               value="<%= event.event_date ? event.event_date.split('T')[0] : '' %>"
+               class="border rounded px-3 py-2" required>
+      </div>
+
+      <div>
+        <label class="block font-medium mb-1">Description *</label>
+        <textarea name="description" rows="3"
+                  class="w-full border rounded px-3 py-2" required>
+<%= event.description || '' %></textarea>
+      </div>
     </div>
 
-    <div class="mb-4">
-      <label class="block font-medium mb-1" for="description">Description</label>
-      <textarea id="description" name="description" rows="3"
-                class="w-full border rounded px-3 py-2"><%= event.description %></textarea>
+    <!-- ─────────── Ticket rows ─────────── -->
+    <div class="border border-gray-200 p-6 rounded-lg">
+      <h2 class="text-xl font-semibold mb-4">Ticket Types</h2>
+
+      <div id="tickets" class="space-y-4"></div>
+
+      <button type="button" id="add-ticket"
+              class="mt-4 text-blue-600 hover:underline">+ Add ticket type</button>
     </div>
 
-    <div class="mb-6">
-      <label class="block font-medium mb-1" for="event_date">Date</label>
-      <input id="event_date" name="event_date" type="date"
-             value="<%= event.event_date ? event.event_date.split('T')[0] : '' %>"
-             class="border rounded px-3 py-2" required />
-    </div>
-
-    <h2 class="text-xl font-semibold mb-2">Ticket Types</h2>
-    <div id="tickets-container" class="space-y-4 mb-4">
-      <% tickets.forEach(t => { %>
-        <div class="flex gap-4 items-end ticket-row">
-          <!-- existing ticket id -->
-          <input type="hidden" name="tickets[<%= t.id %>][id]" value="<%= t.id %>" />
-
-          <div class="flex-1">
-            <label class="block text-sm mb-1">Type</label>
-            <input name="tickets[<%= t.id %>][type]" value="<%= t.type %>"
-                   class="w-full border rounded px-2 py-1" required />
-          </div>
-
-          <div class="w-1/4">
-            <label class="block text-sm mb-1">Price ($)</label>
-            <input name="tickets[<%= t.id %>][price]" type="number" min="0" step="0.01"
-                   value="<%= t.price.toFixed(2) %>"
-                   class="w-full border rounded px-2 py-1" required />
-          </div>
-
-          <div class="w-1/4">
-            <label class="block text-sm mb-1">Quantity</label>
-            <input name="tickets[<%= t.id %>][quantity]" type="number" min="0"
-                   value="<%= t.quantity %>"
-                   class="w-full border rounded px-2 py-1" required />
-          </div>
-
-          <button type="button" class="remove-ticket text-red-600 hover:underline">
-            Remove
-          </button>
-        </div>
-      <% }) %>
-    </div>
-
-    <button type="button" id="add-ticket" class="mb-6 text-blue-600 hover:underline">
-      + Add ticket type
-    </button>
-
-    <div>
+    <!-- ─────────── actions ─────────── -->
+    <div class="pt-6 flex gap-4">
       <button type="submit"
-              class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition">
-        Submit Changes
+              class="flex-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded">
+        Save Changes
       </button>
-      <a href="/organiser" class="ml-4 text-gray-600 hover:underline">← Back to Home</a>
+
+      <% if (event.state === 'draft') { %>
+        <button type="button" class="flex-1 bg-green-600 hover:bg-green-700
+                                     text-white px-6 py-3 rounded"
+                onclick="publishEvent(<%= event.id %>)">
+          Save&nbsp;&amp;&nbsp;Publish
+        </button>
+      <% } %>
+
+      <a href="/organiser"
+         class="flex-1 bg-gray-600 hover:bg-gray-700 text-white
+                px-6 py-3 rounded text-center">
+        Back&nbsp;to&nbsp;Dashboard
+      </a>
     </div>
   </form>
 </div>
 
+<!-- existing tickets JSON-encoded once → parsed by JS -->
+<script id="tickets-json" type="application/json">
+  <%- JSON.stringify(tickets) %>
+</script>
+
 <script>
-// dynamic add / remove
-let newIdx = 0;
-document.getElementById('add-ticket').addEventListener('click', () => {
-  const container = document.getElementById('tickets-container');
-  const idx = `new${newIdx++}`;
-  const div = document.createElement('div');
-  div.className = 'flex gap-4 items-end ticket-row';
-  div.innerHTML = `
-    <div class="flex-1">
-      <label class="block text-sm mb-1">Type</label>
-      <input name="tickets[${idx}][type]" class="w-full border rounded px-2 py-1" required/>
-    </div>
-    <div class="w-1/4">
-      <label class="block text-sm mb-1">Price ($)</label>
-      <input name="tickets[${idx}][price]" type="number" min="0" step="0.01"
-             value="0" class="w-full border rounded px-2 py-1" required/>
-    </div>
-    <div class="w-1/4">
-      <label class="block text-sm mb-1">Quantity</label>
-      <input name="tickets[${idx}][quantity]" type="number" min="0"
-             value="0" class="w-full border rounded px-2 py-1" required/>
-    </div>
-    <button type="button" class="remove-ticket text-red-600 hover:underline">
-      Remove
-    </button>
-  `;
-  container.appendChild(div);
-});
-document.getElementById('tickets-container').addEventListener('click', e => {
-  if (e.target.classList.contains('remove-ticket')) {
-    e.target.closest('.ticket-row').remove();
+/* ----------------------------------------------------------
+   Ticket-row builder, add/remove, auto-save to localStorage
+   ---------------------------------------------------------- */
+(function () {
+  const form        = document.getElementById('edit-form');
+  const ticketsWrap = document.getElementById('tickets');
+  const addBtn      = document.getElementById('add-ticket');
+  const storeKey    = 'ticketDraft-' + form.dataset.event;
+  let   newIdx      = 0;
+
+  /* ---------- utilities ---------- */
+  function el (html) {
+    const div = document.createElement('div');
+    div.innerHTML = html.trim();
+    return div.firstChild;
   }
-});
+
+  function rowHTML (idx, data) {
+    const idField = data.id
+      ? '<input type="hidden" name="tickets['+idx+'][id]" value="'+data.id+'">'
+      : '';
+    return `
+      <div class="flex gap-4 items-end ticket-row" data-id="${idx}">
+        ${idField}
+        <div class="flex-1">
+          <label class="block text-sm mb-1">Type</label>
+          <input name="tickets[${idx}][type]"
+                 value="${data.type || ''}"
+                 class="w-full border rounded px-2 py-1" required>
+        </div>
+
+        <div class="w-1/4">
+          <label class="block text-sm mb-1">Price (£)</label>
+          <input name="tickets[${idx}][price]" type="number" min="0" step="0.01"
+                 value="${typeof data.price === 'number' ? data.price : ''}"
+                 class="w-full border rounded px-2 py-1" required>
+        </div>
+
+        <div class="w-1/4">
+          <label class="block text-sm mb-1">Qty</label>
+          <input name="tickets[${idx}][quantity]" type="number" min="0"
+                 value="${typeof data.quantity === 'number' ? data.quantity : ''}"
+                 class="w-full border rounded px-2 py-1" required>
+        </div>
+
+        <button type="button"
+                class="remove-ticket text-red-600 hover:underline">
+          Remove
+        </button>
+      </div>`;
+  }
+
+  function addRow (data) {
+    const idx = data && data.id ? data.id : 'new' + (newIdx++);
+    ticketsWrap.appendChild(el(rowHTML(idx, data || {})));
+  }
+
+  /* ---------- restore cached draft or server tickets ---------- */
+  (function initRows () {
+    const draft = localStorage.getItem(storeKey);
+    if (draft) {
+      try {
+        JSON.parse(draft).forEach(addRow);
+        return; // done
+      } catch (e) { /* fall back to server tickets */ }
+    }
+
+    const serverTickets = JSON.parse(
+      document.getElementById('tickets-json').textContent || '[]'
+    );
+    serverTickets.forEach(addRow);
+  })();
+
+  /* ---------- handlers ---------- */
+  addBtn.addEventListener('click', function () {
+    addRow();
+    saveDraft();
+  });
+
+  ticketsWrap.addEventListener('click', function (e) {
+    if (e.target.classList.contains('remove-ticket')) {
+      e.target.closest('.ticket-row').remove();
+      saveDraft();
+    }
+  });
+
+  ticketsWrap.addEventListener('input', debounce(saveDraft, 250));
+
+  form.addEventListener('submit', function () {
+    localStorage.removeItem(storeKey);
+  });
+
+  /* ---------- persistence ---------- */
+  function saveDraft () {
+    const rows = Array.from(ticketsWrap.querySelectorAll('.ticket-row'))
+      .map(function (row) {
+        return {
+          id:       row.dataset.id.startsWith('new') ? '' : row.dataset.id,
+          type:     row.querySelector('[name$="[type]"]').value.trim(),
+          price:    row.querySelector('[name$="[price]"]').value.trim(),
+          quantity: row.querySelector('[name$="[quantity]"]').value.trim()
+        };
+      });
+    localStorage.setItem(storeKey, JSON.stringify(rows));
+  }
+
+  function debounce (fn, ms) {
+    var t; return function () { clearTimeout(t); t = setTimeout(fn, ms); };
+  }
+})();
+
+/* ----------------------------------------------------------
+   optional “Save + Publish” helper
+   ---------------------------------------------------------- */
+function publishEvent (id) {
+  const fd = new FormData(document.getElementById('edit-form'));
+  axios.post(`/organiser/events/${id}/edit`, fd)
+       .then(function () {
+         return axios.post(`/organiser/events/${id}/publish`);
+       })
+       .then(function () { location.href = '/organiser'; })
+       .catch(function (err) {
+         console.error(err);
+         alert('Failed to save & publish – see console for details.');
+       });
+}
 </script>
 
 <%- include('partials/footer') %>

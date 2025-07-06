@@ -1,0 +1,153 @@
+<!-- views/payment/checkout.ejs -->
+<%- include('../partials/header', { title: 'Payment' }) %>
+
+<div class="container mx-auto px-4 py-8 page-transition">
+  <div class="max-w-4xl mx-auto">
+    <h1 class="text-3xl font-bold mb-8 text-center">Complete Your Booking</h1>
+    
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <!-- Order Summary -->
+      <div class="card">
+        <h2 class="text-xl font-semibold mb-4">Order Summary</h2>
+        <div class="space-y-4">
+          <div>
+            <h3 class="font-bold text-lg"><%= booking.event_title %></h3>
+            <p class="text-gray-600">
+              <i class="fas fa-ticket-alt mr-2"></i>
+              <%= booking.qty %> × <%= booking.ticket_type %> ticket<%= booking.qty > 1 ? 's' : '' %>
+            </p>
+          </div>
+          
+          <div class="border-t pt-4">
+            <div class="flex justify-between items-center">
+              <span class="text-gray-600">Subtotal</span>
+              <span>$<%= booking.total_amount.toFixed(2) %></span>
+            </div>
+            <div class="flex justify-between items-center mt-2">
+              <span class="text-gray-600">Processing Fee</span>
+              <span>$0.00</span>
+            </div>
+            <div class="flex justify-between items-center mt-4 pt-4 border-t">
+              <span class="font-bold text-lg">Total</span>
+              <span class="font-bold text-lg text-blue-600">
+                $<%= booking.total_amount.toFixed(2) %>
+              </span>
+            </div>
+          </div>
+
+          <div class="bg-blue-50 p-4 rounded-lg">
+            <p class="text-sm text-blue-800">
+              <i class="fas fa-info-circle mr-2"></i>
+              This is a demo payment. Use card number 4242 4242 4242 4242 with any future date and CVV.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment Form -->
+      <div class="card payment-form">
+        <h2 class="text-xl font-semibold mb-4">Payment Details</h2>
+        <form id="payment-form" onsubmit="handlePayment(event)">
+          <input type="hidden" name="bookingId" value="<%= booking.id %>">
+          
+          <div class="form-group">
+            <label class="form-label" for="cardName">Cardholder Name</label>
+            <input type="text" id="cardName" name="cardName" 
+                   class="form-input" required
+                   placeholder="John Doe">
+          </div>
+
+          <div class="form-group card-input-group">
+            <label class="form-label" for="cardNumber">Card Number</label>
+            <input type="text" id="cardNumber" name="cardNumber" 
+                   class="form-input" required
+                   placeholder="4242 4242 4242 4242"
+                   maxlength="19"
+                   pattern="[0-9\s]{19}">
+            <i class="fas fa-credit-card card-icon"></i>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4">
+            <div class="form-group">
+              <label class="form-label" for="cardExpiry">Expiry Date</label>
+              <input type="text" id="cardExpiry" name="cardExpiry" 
+                     class="form-input" required
+                     placeholder="MM/YY"
+                     maxlength="5"
+                     pattern="[0-9]{2}/[0-9]{2}">
+            </div>
+            
+            <div class="form-group">
+              <label class="form-label" for="cardCvv">CVV</label>
+              <input type="text" id="cardCvv" name="cardCvv" 
+                     class="form-input" required
+                     placeholder="123"
+                     maxlength="4"
+                     pattern="[0-9]{3,4}">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="billingZip">Billing ZIP/Postal Code</label>
+            <input type="text" id="billingZip" name="billingZip" 
+                   class="form-input"
+                   placeholder="12345">
+          </div>
+
+          <div class="flex items-center mb-6">
+            <input type="checkbox" id="saveCard" class="mr-2">
+            <label for="saveCard" class="text-sm text-gray-600">
+              Save card for future purchases (demo only)
+            </label>
+          </div>
+
+          <button type="submit" id="payment-submit" class="btn btn-primary w-full">
+            <i class="fas fa-lock mr-2"></i>
+            Pay $<%= booking.total_amount.toFixed(2) %>
+          </button>
+
+          <div class="mt-4 text-center">
+            <p class="text-xs text-gray-500">
+              <i class="fas fa-shield-alt mr-1"></i>
+              Your payment information is secure and encrypted
+            </p>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+async function handlePayment(event) {
+  event.preventDefault();
+  
+  const form = event.target;
+  const formData = {
+    bookingId: form.bookingId.value,
+    cardNumber: form.cardNumber.value,
+    cardExpiry: form.cardExpiry.value,
+    cardCvv: form.cardCvv.value,
+    cardName: form.cardName.value,
+    billingZip: form.billingZip.value
+  };
+  
+  await processPayment(formData);
+}
+
+// Auto-advance to expiry field
+document.getElementById('cardNumber').addEventListener('input', function(e) {
+  if (e.target.value.length === 19) {
+    document.getElementById('cardExpiry').focus();
+  }
+});
+
+// Auto-advance to CVV field
+document.getElementById('cardExpiry').addEventListener('input', function(e) {
+  if (e.target.value.length === 5) {
+    document.getElementById('cardCvv').focus();
+  }
+});
+</script>
+
+<%- include('../partials/footer') %>

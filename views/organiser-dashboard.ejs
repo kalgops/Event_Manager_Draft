@@ -1,60 +1,210 @@
-<%- include('partials/header', { title: 'Dashboard' }) %>
+<!-- views/organiser/dashboard.ejs -->
+<%- include('../partials/header', { title: 'Dashboard' }) %>
 
-<div class="max-w-4xl mx-auto py-10 space-y-10">
-  <h1 class="text-3xl font-bold">Dashboard</h1>
+<div class="container mx-auto px-4 py-8 page-transition">
+  <div class="flex justify-between items-center mb-8">
+    <div>
+      <h1 class="text-3xl font-bold mb-2">Welcome back, <%= user.username %>!</h1>
+      <h2 class="text-xl text-gray-600"><%= settings.site_name %></h2>
+      <p class="text-gray-500"><%= settings.site_desc %></p>
+    </div>
+    <div class="flex space-x-3">
+      <a href="/organiser/settings" class="btn btn-secondary">
+        <i class="fas fa-cog mr-2"></i>Settings
+      </a>
+      <button id="create-event" class="btn btn-primary">
+        <i class="fas fa-plus mr-2"></i>Create Event
+      </button>
+    </div>
+  </div>
 
-  <!-- ── Chart 1 ─────────────────────────────────────── -->
-  <section>
-    <h2 class="text-xl font-semibold mb-2">Tickets booked by type</h2>
-    <canvas id="chartProgress" width="400" height="200" class="h-56"></canvas>
-  </section>
+  <!-- Analytics Summary -->
+  <div class="dashboard-grid mb-8">
+    <div class="stat-card">
+      <div class="stat-label">Total Events</div>
+      <div class="stat-value"><%= published.length + drafts.length %></div>
+      <div class="text-sm text-gray-500">
+        <%= published.length %> published, <%= drafts.length %> drafts
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-label">Tickets Sold</div>
+      <div class="stat-value">
+        <%= ticketStats.reduce((sum, t) => sum + t.value, 0) %>
+      </div>
+      <div class="text-sm text-gray-500">
+        Across all events
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-label">Total Revenue</div>
+      <div class="stat-value">
+        $<%= ticketStats.reduce((sum, t) => sum + t.revenue, 0).toFixed(2) %>
+      </div>
+      <div class="text-sm text-gray-500">
+        From completed bookings
+      </div>
+    </div>
+    
+    <div class="stat-card">
+      <div class="stat-label">This Week</div>
+      <div class="stat-value">
+        <%= bookingsData.reduce((sum, d) => sum + d.booking_count, 0) %>
+      </div>
+      <div class="text-sm text-gray-500">
+        New bookings
+      </div>
+    </div>
+  </div>
 
-  <!-- ── Chart 2 ─────────────────────────────────────── -->
-  <section>
-    <h2 class="text-xl font-semibold mb-2">Events by state</h2>
-    <canvas id="chartEvents" width="400" height="200" class="h-56"></canvas>
-  </section>
+  <!-- Charts Row -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <!-- Ticket Sales Pie Chart -->
+    <div class="chart-container">
+      <h3 class="text-xl font-semibold mb-4">Ticket Sales by Type</h3>
+      <canvas id="bookingChart"></canvas>
+    </div>
+    
+    <!-- Revenue Line Chart -->
+    <div class="chart-container">
+      <h3 class="text-xl font-semibold mb-4">Revenue This Week</h3>
+      <canvas id="revenueChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="flex gap-4 mb-8">
+    <a href="/organiser/bookings" class="btn btn-secondary">
+      <i class="fas fa-list mr-2"></i>View All Bookings
+    </a>
+    <a href="/organiser/analytics" class="btn btn-secondary">
+      <i class="fas fa-chart-line mr-2"></i>Detailed Analytics
+    </a>
+  </div>
+
+  <!-- Events Lists -->
+  <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <!-- Published Events -->
+    <div>
+      <h3 class="text-xl font-semibold mb-4">Published Events</h3>
+      <% if (published.length === 0) { %>
+        <p class="text-gray-500">No published events yet.</p>
+      <% } else { %>
+        <div class="space-y-4">
+          <% published.forEach((event, index) => { %>
+            <div class="card animate-in" style="animation-delay: <%= index * 0.1 %>s">
+              <div class="flex justify-between items-start">
+                <div class="flex-1">
+                  <h4 class="font-bold text-lg"><%= event.title %></h4>
+                  <p class="text-sm text-gray-600 mt-1">
+                    <i class="fas fa-calendar mr-1"></i>
+                    <%= event.event_date ? new Date(event.event_date).toLocaleDateString() : 'No date set' %>
+                  </p>
+                  <div class="flex items-center gap-4 mt-2 text-sm">
+                    <span class="text-gray-500">
+                      <i class="fas fa-ticket-alt mr-1"></i>
+                      <%= event.total_qty - event.total_sold %> / <%= event.total_qty %> available
+                    </span>
+                    <span class="text-green-600">
+                      <i class="fas fa-check-circle mr-1"></i>
+                      <%= event.total_sold %> sold
+                    </span>
+                  </div>
+                  <a href="/attendee/events/<%= event.id %>" 
+                     class="text-blue-600 text-sm hover:underline mt-2 inline-block"
+                     target="_blank">
+                    <i class="fas fa-external-link-alt mr-1"></i>View public page
+                  </a>
+                </div>
+                <div class="flex flex-col gap-2">
+                  <a href="/organiser/events/<%= event.id %>/edit" 
+                     class="btn btn-sm btn-secondary">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <button data-id="<%= event.id %>" 
+                          class="delete-btn btn btn-sm btn-danger">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+
+    <!-- Draft Events -->
+    <div>
+      <h3 class="text-xl font-semibold mb-4">Draft Events</h3>
+      <% if (drafts.length === 0) { %>
+        <p class="text-gray-500">No draft events.</p>
+      <% } else { %>
+        <div class="space-y-4">
+          <% drafts.forEach((event, index) => { %>
+            <div class="card animate-in" style="animation-delay: <%= (published.length + index) * 0.1 %>s">
+              <div class="flex justify-between items-start">
+                <div class="flex-1">
+                  <h4 class="font-bold text-lg"><%= event.title || 'Untitled Event' %></h4>
+                  <p class="text-sm text-gray-600 mt-1">
+                    <i class="fas fa-clock mr-1"></i>
+                    Created <%= new Date(event.created_at).toLocaleDateString() %>
+                  </p>
+                  <% if (event.last_modified && event.last_modified !== event.created_at) { %>
+                    <p class="text-xs text-gray-500">
+                      Last modified <%= new Date(event.last_modified).toLocaleDateString() %>
+                    </p>
+                  <% } %>
+                </div>
+                <div class="flex gap-2">
+                  <button data-id="<%= event.id %>" 
+                          class="publish-btn btn btn-sm btn-primary">
+                    <i class="fas fa-rocket mr-1"></i>Publish
+                  </button>
+                  <a href="/organiser/events/<%= event.id %>/edit" 
+                     class="btn btn-sm btn-secondary">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <button data-id="<%= event.id %>" 
+                          class="delete-btn btn btn-sm btn-danger">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+  </div>
 </div>
 
-<!-- Chart.js and drawing script -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-  /* data injected from /routes/organiser.js */
-  const progLabels = <%- JSON.stringify(progLabels || []) %>;
-  const progData   = <%- JSON.stringify(progData   || []) %>;
-  const evtLabels  = <%- JSON.stringify(evtLabels  || []) %>;
-  const evtData    = <%- JSON.stringify(evtData    || []) %>;
+  // Prepare chart data
+  window.bookingChartData = {
+    labels: <%= JSON.stringify(ticketStats.map(t => t.label)) %>,
+    datasets: [{
+      data: <%= JSON.stringify(ticketStats.map(t => t.value)) %>,
+      backgroundColor: [
+        '#3B82F6', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6', '#EC4899'
+      ],
+      borderWidth: 0
+    }]
+  };
 
-  /* helper – true if any value >0 */
-  const hasData = arr => Array.isArray(arr) && arr.some(n => n > 0);
-
-  /* Ticket-type pie chart */
-  if (hasData(progData)) {
-    new Chart(document.getElementById('chartProgress').getContext('2d'), {
-      type: 'pie',
-      data: { labels: progLabels, datasets: [{ data: progData }] },
-      options: { responsive: true }
-    });
-  } else {
-    document
-      .getElementById('chartProgress')
-      .insertAdjacentHTML('afterend',
-        '<p class="text-gray-500 italic">No bookings yet</p>');
-  }
-
-  /* Event-state doughnut chart */
-  if (hasData(evtData)) {
-    new Chart(document.getElementById('chartEvents').getContext('2d'), {
-      type: 'doughnut',
-      data: { labels: evtLabels, datasets: [{ data: evtData }] },
-      options: { responsive: true }
-    });
-  } else {
-    document
-      .getElementById('chartEvents')
-      .insertAdjacentHTML('afterend',
-        '<p class="text-gray-500 italic">No events found</p>');
-  }
+  window.revenueChartData = {
+    labels: <%= JSON.stringify(bookingsData.map(d => new Date(d.booking_date).toLocaleDateString())) %>,
+    datasets: [{
+      label: 'Daily Revenue',
+      data: <%= JSON.stringify(bookingsData.map(d => d.revenue)) %>,
+      borderColor: '#3B82F6',
+      backgroundColor: 'rgba(59, 130, 246, 0.1)',
+      tension: 0.4,
+      fill: true
+    }]
+  };
 </script>
 
-<%- include('partials/footer') %>
+<%- include('../partials/footer') %>
