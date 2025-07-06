@@ -259,7 +259,7 @@ router.post('/events/:id/edit', [
  * POST /organiser/events/:id/publish - Publish event
  * Changes event state from draft to published and sets publication timestamp
  */
-router.post('/organiser/events/:id/publish', (req, res, next) => {
+router.post('/events/:id/publish', (req, res, next) => {
   db.run(
     `UPDATE events 
      SET state = 'published', published_at = datetime('now')
@@ -276,7 +276,7 @@ router.post('/organiser/events/:id/publish', (req, res, next) => {
  * DELETE /organiser/events/:id - Delete event
  * Removes event and all associated tickets and bookings
  */
-router.delete('/organiser/events/:id', (req, res, next) => {
+router.delete('/events/:id', (req, res, next) => {
   db.run(
     'DELETE FROM events WHERE id = ?',
     [req.params.id],

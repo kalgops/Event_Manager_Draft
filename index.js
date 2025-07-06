@@ -6,6 +6,8 @@ const portfinder    = require('portfinder');
 const cookieParser  = require('cookie-parser');
 
 const db              = require('./db');
+// expose the db instance so routers expecting `global.db` continue to work
+global.db = db;
 const authRouter      = require('./routes/auth');
 const { ensureAdmin } = require('./middleware/auth');
 const organiserRouter = require('./routes/organiser');
