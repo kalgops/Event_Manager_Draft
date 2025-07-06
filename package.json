@@ -4,8 +4,8 @@
   "description": "Event Manager App for organisers and attendees",
   "main": "index.js",
   "scripts": {
-    "start": "node index1.js",
-    "dev": "nodemon index1.js",
+    "start": "node index.js",
+    "dev": "nodemon index.js",
     "build-db": "node build-db.js",
     "seed": "node seed-data.js",
     "init-db": "npm run build-db && npm run seed"

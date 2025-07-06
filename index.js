@@ -76,14 +76,14 @@ app.use((req, res, next) => {
   next();
 });
 
-/* ─── Routes ─────────────────────────────────────────── */
-const indexRouter     = require('./routes/index');
+
 const organiserRouter = require('./routes/organiser');
 const authRouter      = require('./routes/auth').router;
 const adminRouter     = require('./routes/admin');
 const attendeeRouter  = require('./routes/attendee');
 const userRouter      = require('./routes/users');
 const paymentRouter   = require('./routes/payment');
+const indexRouter     = require('./routes/index');
 
 /* ─── Mount Routes ───────────────────────────────────── */
 app.use('/', indexRouter);

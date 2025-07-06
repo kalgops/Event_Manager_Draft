@@ -1,21 +1,10 @@
-<<<<<<< HEAD
 // routes/index.js
 const express = require('express');
-const router  = express.Router();
+const router = express.Router();
 
-// Home page
+// GET / - Landing/Home Page
 router.get('/', (req, res) => {
-  res.render('index', { title: 'Welcome' });
+  res.render('index', { title: 'Home' });
 });
-=======
-// // routes/index.js
-// const express = require('express');
-// const router = express.Router();
 
-// // Home route
-// router.get('/', (req, res) => {
-//   res.render('index', { title: 'Welcome' });
-// });
->>>>>>> 719dabd58186a409ba9efa120414b71cd818fedc
-
-// module.exports = router;
+module.exports = router;
