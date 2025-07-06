@@ -1,142 +1,57 @@
 // routes/attendee.js
 const express = require('express');
-const db      = require('../db');
-const router  = express.Router();
+const router = express.Router();
+const db = global.db;
 
-// GET /attendee
+// GET /attendee - Attendee Home Page
 router.get('/', (req, res, next) => {
-  db.get(
-    'SELECT * FROM site_settings WHERE organiser_id = 1',
-    (err, settings) => {
-      if (err) return next(err);
-      db.all(
-        'SELECT * FROM events WHERE state = "published" ORDER BY event_date',
-        (err, events) => {
-          if (err) return next(err);
-          res.render('attendee-home', {
-            title:    'Attendee Home',
-            settings,
-            events,
-            booked:   true    // or pass true if you want to flag a recent booking
-          });
-        }
-      );
-    }
-  );
+  db.get('SELECT name, description FROM site_settings', (err, settings) => {
+    if (err) return next(err);
+    db.all('SELECT * FROM events WHERE published = 1 ORDER BY date ASC', (e2, events) => {
+      if (e2) return next(e2);
+      res.render('attendee_home', { settings, events });
+    });
+  });
 });
 
-// GET /attendee/events/:id
+// GET /attendee/events/:id - Show event & form
 router.get('/events/:id', (req, res, next) => {
-  const eid = req.params.id;
-  db.get(
-    'SELECT * FROM events WHERE id = ? AND state = "published"',
-    [eid],
-    (err, event) => {
-      if (err) return next(err);
-      if (!event) return res.status(404).render('404', { title: 'Not Found' });
-      db.all(
-        'SELECT * FROM tickets WHERE event_id = ?',
-        [eid],
-        (err, tickets) => {
-          if (err) return next(err);
-          res.render('attendee-event', {
-            title:     `Attend: ${event.title}`,
-            event,
-            tickets,
-            errors:    [],
-            formData:  {}             // no prior input on initial GET
-          });
-        }
-      );
-    }
-  );
+  const id = req.params.id;
+  db.get('SELECT * FROM events WHERE id = ? AND published = 1', [id], (err, event) => {
+    if (err) return next(err);
+    if (!event) return res.status(404).render('404');
+    db.all('SELECT * FROM tickets WHERE event_id = ?', [id], (e2, tickets) => {
+      if (e2) return next(e2);
+      res.render('attendee_event', { event, tickets });
+    });
+  });
 });
 
-// POST /attendee/events/:id/book
+// POST /attendee/events/:id/book - Handle booking
 router.post('/events/:id/book', (req, res, next) => {
-  const eid = req.params.id;
-  const { name, email, tickets } = req.body;
-  
-  // Basic validation
-  if (!name || !email) {
-    return db.all(
-      'SELECT * FROM tickets WHERE event_id = ?',
-      [eid],
-      (err, allTickets) => {
-        if (err) return next(err);
-        res.render('attendee-event', {
-          title:    `Book: ${req.params.id}`,
-          event:    { id: eid },
-          tickets:  allTickets,
-          errors:   ['Name and email are required'],
-          formData: req.body
-        });
-      }
-    );
-  }
+  const id = req.params.id;
+  const { name, full_qty = 0, concession_qty = 0 } = req.body;
+  if (!name) return res.status(400).send("Name required");
 
-  // Parse selections { "<ticketId>": { quantity: "2" }, … }
-  const selections = Object.entries(tickets || {})
-    .map(([tid, obj]) => ({ id: Number(tid), qty: Number(obj.quantity) }))
-    .filter(t => t.qty > 0);
-
-  if (selections.length === 0) {
-    return db.all(
-      'SELECT * FROM tickets WHERE event_id = ?',
-      [eid],
-      (err, allTickets) => {
-        if (err) return next(err);
-        res.render('attendee-event', {
-          title:    `Book: ${eid}`,
-          event:    { id: eid },
-          tickets:  allTickets,
-          errors:   ['Please select at least one ticket'],
-          formData: req.body
-        });
-      }
-    );
-  }
-
-  // Start transaction
   db.serialize(() => {
-    db.run('BEGIN', err => {
-      if (err) return next(err);
-
-      // For each selected ticket type
-      for (let { id, qty } of selections) {
-        // Check availability synchronously
-        db.get(
-          'SELECT quantity FROM tickets WHERE id = ?',
-          [id],
-          (err, row) => {
-            if (err) return next(err);
-            if (!row || row.quantity < qty) {
-              return next(new Error('Not enough tickets available'));
-            }
+    db.get('SELECT quantity FROM tickets WHERE event_id=? AND type="full"', [id], (e1, full) => {
+      db.get('SELECT quantity FROM tickets WHERE event_id=? AND type="concession"', [id], (e2, concess) => {
+        if (full_qty > full.quantity || concession_qty > concess.quantity) {
+          return res.status(400).send("Not enough tickets available.");
+        }
+        db.run(
+          'INSERT INTO bookings (event_id, name, full_qty, concession_qty, payment_status) VALUES (?, ?, ?, ?, ?)',
+          [id, name, full_qty, concession_qty, "completed"],
+          (e3) => {
+            if (e3) return next(e3);
+            db.run('UPDATE tickets SET quantity = quantity - ? WHERE event_id=? AND type="full"', [full_qty, id]);
+            db.run('UPDATE tickets SET quantity = quantity - ? WHERE event_id=? AND type="concession"', [concession_qty, id]);
+            res.redirect('/attendee');
           }
         );
-
-        // Insert booking
-        db.run(
-          'INSERT INTO bookings(event_id, ticket_id, buyer_name, buyer_email, qty) VALUES(?,?,?,?,?)',
-          [eid, id, name, email, qty]
-        );
-
-        // Decrement stock
-        db.run(
-          'UPDATE tickets SET quantity = quantity - ? WHERE id = ?',
-          [qty, id]
-        );
-      }
-
-      // Commit or rollback
-      db.run('COMMIT', err => {
-        if (err) return next(err);
-        res.redirect('/attendee?booked=1');
       });
     });
   });
 });
 
 module.exports = router;
-// This code handles the attendee routes for viewing events, booking tickets, and managing bookings.

@@ -64,20 +64,29 @@ const auth = {
   ensureOrganiser: (req, res, next) => {
     if (req.session.user?.type === 'organiser') return next();
     req.flash('error', 'Please log in as organiser');
-    return res.redirect('/');
+    return res.redirect('/auth/login'); // ✅ fixed path
   },
   ensureAdmin: (req, res, next) => {
     if (req.session.user?.type === 'admin') return next();
     req.flash('error', 'Admin access required');
-    return res.redirect('/');
+    return res.redirect('/auth/login'); // ✅ fixed path
   }
 };
 
 /* ─── Routes ───────────────────────────────────────────────────── */
+app.use('/auth',    require('./routes/auth'));
+app.use('/attendee',  require('./routes/attendee'));
+app.use('/organiser', auth.ensureOrganiser, require('./routes/organiser'));
+app.use('/admin',     auth.ensureAdmin,     require('./routes/admin'));
+app.use('/users',     require('./routes/users'));
+app.use('/payment',   require('./routes/payment'));
+
+/* ─── Root route ─────────────────────────────────────────────── */
 app.get('/', (req, res) => {
   res.render('index', { title: 'Welcome' });
 });
 
+/* ─── Theme toggle API ─────────────────────────────────────────── */
 app.post('/toggle-theme', (req, res) => {
   const nextTheme = req.session.theme === 'dark' ? 'light' : 'dark';
   req.session.theme = nextTheme;
@@ -87,13 +96,6 @@ app.post('/toggle-theme', (req, res) => {
   );
   res.json({ theme: nextTheme });
 });
-
-app.use('/auth',      require('./routes/auth'));
-app.use('/attendee',  require('./routes/attendee'));
-app.use('/organiser', auth.ensureOrganiser, require('./routes/organiser'));
-app.use('/admin',     auth.ensureAdmin,     require('./routes/admin'));
-app.use('/users',     require('./routes/users'));
-app.use('/payment',   require('./routes/payment'));
 
 /* ─── Error handling ───────────────────────────────────────────── */
 app.use((req, res) => {
@@ -112,7 +114,7 @@ portfinder.basePort = DEFAULT_PORT;
 portfinder.getPortPromise()
   .then(port => {
     app.listen(port, () => {
-      console.log(`🚀 http://localhost:${port}`);
+      console.log(`🚀 Listening on http://localhost:${port}`);
     });
   })
   .catch(err => {

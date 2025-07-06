@@ -1,7 +1,6 @@
-// routes/auth.js
 const express = require('express');
 const bcrypt  = require('bcrypt');
-const db      = require('../db');      // <-- ensure this import
+const db      = require('../db');
 const router  = express.Router();
 
 // GET /login
@@ -32,11 +31,10 @@ router.post('/login', (req, res, next) => {
         if (!ok) {
           return res.render('login', { title: 'Login', errors: ['Invalid credentials'] });
         }
-        // unify under session.user so your middleware will pick it up:
         req.session.user = {
           id:   user.id,
           type: 'organiser',
-          name: user.username
+          username: user.username
         };
         res.redirect('/organiser');
       });
