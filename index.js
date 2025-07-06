@@ -1,53 +1,128 @@
 // index.js
-const express       = require('express');
-const session       = require('express-session');
-const path          = require('path');
-const portfinder    = require('portfinder');
-const cookieParser  = require('cookie-parser');
+require('dotenv').config();
+const express    = require('express');
+const session    = require('express-session');
+const flash      = require('connect-flash');
+const sqlite3    = require('sqlite3').verbose();
+const path       = require('path');
+const portfinder = require('portfinder');
 
-const db              = require('./db');
-const authRouter      = require('./routes/auth');
-const { ensureAdmin } = require('./middleware/auth');
-const organiserRouter = require('./routes/organiser');
-const attendeeRouter  = require('./routes/attendee');
-
+const DEFAULT_PORT = parseInt(process.env.PORT, 10) || 3000;
 const app = express();
-const DEFAULT_PORT = parseInt(process.env.PORT,10) || 3000;
 
-app.set('view engine','ejs');
-app.set('views', path.join(__dirname,'views'));
-app.use(express.static(path.join(__dirname,'public')));
-app.use(express.urlencoded({ extended:true }));
+/* ─── SQLite connection ────────────────────────────────────────── */
+global.db = new sqlite3.Database('database.db', err => {
+  if (err) console.error(err);
+  else console.log(`✅  Connected to SQLite: ${path.resolve('database.db')}`);
+});
+
+/* ─── View engine & static ─────────────────────────────────────── */
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+app.use(express.static(path.join(__dirname, 'public')));
+
+/* ─── Body parsing & session ───────────────────────────────────── */
+app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-app.use(cookieParser());
-app.use(session({
-  secret: 'your-secret-here',
-  resave: false,
-  saveUninitialized: false
-}));
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET || 'event-manager-secret-key',
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: process.env.NODE_ENV === 'production',
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000
+    }
+  })
+);
+app.use(flash());
 
-app.use((req,res,next)=>{
-  res.locals.session = req.session;
+/* ─── Global template vars ─────────────────────────────────────── */
+app.use((req, res, next) => {
+  res.locals.success_msg = req.flash('success');
+  res.locals.error_msg   = req.flash('error');
+  res.locals.user        = req.session.user || null;
+  res.locals.theme       = req.session.theme || 'light';
   next();
 });
 
-app.use('/',          authRouter);
-app.use('/organiser', ensureAdmin, organiserRouter);
-app.use('/attendee',  attendeeRouter);
-
-app.get('/', (req,res)=> {
-  res.render('index',{ title:'Home' });
+/* ─── Theme toggle ─────────────────────────────────────────────── */
+app.use((req, res, next) => {
+  const t = req.query.theme;
+  if (t === 'light' || t === 'dark') {
+    req.session.theme = t;
+    global.db.run(
+      `INSERT OR REPLACE INTO user_preferences (session_id, theme) VALUES (?,?)`,
+      [req.sessionID, t],
+      err => {
+        if (err) console.error(err);
+      }
+    );
+  }
+  next();
 });
 
-app.use((req,res)=> {
-  res.status(404).render('404',{ title:'Not Found' });
-});
-app.use((err,req,res,next)=> {
-  console.error(err);
-  res.status(500).render('500',{ title:'Error' });
+/* ─── Auth middleware ──────────────────────────────────────────── */
+const auth = {
+  ensureOrganiser: (req, res, next) => {
+    if (req.session.user?.type === 'organiser') return next();
+    req.flash('error', 'Please log in as organiser');
+    return res.redirect('/auth/login');
+  },
+  ensureAdmin: (req, res, next) => {
+    if (req.session.user?.type === 'admin') return next();
+    req.flash('error', 'Admin access required');
+    return res.redirect('/auth/login');
+  }
+};
+
+/* ─── Routes ───────────────────────────────────────────────────── */
+app.use('/auth',    require('./routes/auth'));
+app.use('/attendee',  require('./routes/attendee'));
+app.use('/organiser', auth.ensureOrganiser, require('./routes/organiser'));
+app.use('/admin',     auth.ensureAdmin,     require('./routes/admin'));
+app.use('/users',     require('./routes/users'));
+app.use('/payment',   require('./routes/payment'));
+
+/* ─── Root route ─────────────────────────────────────────────── */
+app.get('/', (req, res) => {
+  res.render('index', { title: 'Welcome' });
 });
 
+/* ─── Theme toggle API ─────────────────────────────────────────── */
+app.post('/toggle-theme', (req, res) => {
+  const nextTheme = req.session.theme === 'dark' ? 'light' : 'dark';
+  req.session.theme = nextTheme;
+  global.db.run(
+    `INSERT OR REPLACE INTO user_preferences (session_id, theme) VALUES (?,?)`,
+    [req.sessionID, nextTheme]
+  );
+  res.json({ theme: nextTheme });
+});
+
+/* ─── Error handling ───────────────────────────────────────────── */
+app.use((req, res) => {
+  req.flash('error', 'Page not found');
+  res.redirect('/');
+});
+
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  req.flash('error', err.message || 'Something went wrong');
+  res.redirect('/');
+});
+
+/* ─── Launch server ────────────────────────────────────────────── */
 portfinder.basePort = DEFAULT_PORT;
-portfinder.getPortPromise()
-  .then(port => app.listen(port,()=>console.log(`🚀 http://localhost:${port}`)))
-  .catch(err=> { console.error('❌ No free port',err); process.exit(1);} );
+portfinder
+  .getPortPromise()
+  .then(port => {
+    app.listen(port, () => {
+      console.log(`🚀 Listening on http://localhost:${port}`);
+    });
+  })
+  .catch(err => {
+    console.error('❌ Could not start:', err);
+    process.exit(1);
+  });

@@ -32,9 +32,11 @@ router.post('/login', (req, res, next) => {
         if (!ok) {
           return res.render('login', { title: 'Login', errors: ['Invalid credentials'] });
         }
-        req.session.organiserId = user.id;
-        req.session.username    = user.username;
-        req.session.isAdmin     = true;
+        req.session.user = {
+          id: user.id,
+          type: 'organiser',
+          username: user.username
+        };
         res.redirect('/organiser');
       });
     }
